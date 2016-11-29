@@ -8,6 +8,23 @@
 #define R 20
 #define C 80
 
+// 점수
+#define CSC_BRU 1
+#define CSC_ASS 2
+#define CSC_COM 3
+// 방어력(체력)
+#define CHP_BRU 3
+#define CHP_ASS 1
+#define CHP_COM 2
+// 공격력
+#define CAT_BRU 1
+#define CAT_ASS 3
+#define CAT_COM 2
+// 탄생 비용
+#define CCO_BRU 2
+#define CCO_ASS 3
+#define CCO_COM 4
+
 typedef enum _d_code{
 	INIT,
 	// 특수
@@ -21,8 +38,14 @@ typedef enum _d_code{
 } d_code;
 
 typedef enum _cell_type{
-	NONE,
-	ALIVE
+	CT_NONE,
+	CT_WALL,
+	CT_1_BRUISER,
+	CT_1_ASSASSIN,
+	CT_1_COMMANDER,
+	CT_2_BRUISER,
+	CT_2_ASSASSIN,
+	CT_2_COMMANDER
 } cell_type;
 
 void dress(d_code, char*, ...);
@@ -32,11 +55,11 @@ void draw(void*, int, int);
 void draw_cell(cell_type);
 
 int main(){
-	cell_type board[R][C] = { 0, };
+	cell_type board[R][C] = { CT_NONE, };
 	int r, c;
-	
+
 	srand(time(NULL));
-	
+
 	dress(CLEAR, "2");
 	// 보드 초기화
 	for(r=0; r<R; r++){
@@ -45,24 +68,24 @@ int main(){
 		}
 	}
 	run(board, R, C);
-	
+
 	return 0;
 }
 void dress(d_code code, char *msg, ...){
 	char buf[BUFSIZ] = { 27, '[', };
 	va_list args;
 	int ign_msg = 0;
-	
+
 	switch(code){
 		case INIT: strcat(buf, "0m"); break;
-		
+
 		case CLEAR: strcat(buf, msg); strcat(buf, "J"); ign_msg = 1; break;
 		case SET_POS: strcat(buf, msg); strcat(buf, "H"); ign_msg = 1; break;
 		case NEXT_LINE: strcat(buf, msg); strcat(buf, "E"); ign_msg = 1; break;
-		
+
 		case BOLD: strcat(buf, "1m"); break;
 		case UNDERLINE: strcat(buf, "4m"); break;
-		
+
 		case F_BLACK: strcat(buf, "30m"); break;
 		case F_RED: strcat(buf, "31m"); break;
 		case F_GREEN: strcat(buf, "32m"); break;
@@ -71,7 +94,7 @@ void dress(d_code code, char *msg, ...){
 		case F_MAGENTA: strcat(buf, "35m"); break;
 		case F_CYAN: strcat(buf, "36m"); break;
 		case F_WHITE: strcat(buf, "37m"); break;
-		
+
 		case B_BLACK: strcat(buf, "40m"); break;
 		case B_RED: strcat(buf, "41m"); break;
 		case B_GREEN: strcat(buf, "42m"); break;
@@ -80,7 +103,7 @@ void dress(d_code code, char *msg, ...){
 		case B_MAGENTA: strcat(buf, "45m"); break;
 		case B_CYAN: strcat(buf, "46m"); break;
 		case B_WHITE: strcat(buf, "47m"); break;
-		
+
 		default: printf("Unhandled dress code: %d\n", code);
 	}
 	if(!ign_msg){
@@ -93,7 +116,7 @@ void dress(d_code code, char *msg, ...){
 void run(void *_b, int rows, int cols){
 	cell_type (*board)[cols] = _b;
 	int gen = 0;
-	
+
 	while(1){
 		draw(board, rows, cols);
 		printf("Gen #%d\n", gen++);
@@ -104,7 +127,7 @@ void run(void *_b, int rows, int cols){
 void draw(void *_b, int rows, int cols){
 	cell_type (*board)[cols] = _b;
 	int r, c;
-	
+
 	dress(SET_POS, "1;1");
 	for(r=0; r<rows; r++){
 		for(c=0; c<cols; c++){
@@ -126,7 +149,7 @@ void evolve(void *_b, int rows, int cols){
 	cell_type new[rows][cols];
 	int r, c, n;
 	int x, y;
-	
+
 	for(r=0; r<rows; r++){
 		for(c=0; c<cols; c++){
 			n = 0;
