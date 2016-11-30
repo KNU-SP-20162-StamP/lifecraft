@@ -5,8 +5,8 @@
 #include <unistd.h>
 #include <time.h>
 
-#define R 20
-#define C 80
+#define R 33
+#define C 77
 
 // 점수
 #define CSC_BRU 1
@@ -48,11 +48,13 @@ typedef enum _cell_type{
 	CT_2_COMMANDER
 } cell_type;
 
+void init_board(void*);
 void dress(d_code, char*, ...);
 void evolve(void*, int, int);
 void run(void*, int, int);
 void draw(void*, int, int);
 void draw_cell(cell_type);
+cell_type get_evolved_cell(int);
 
 int main(){
 	cell_type board[R][C] = { CT_NONE, };
@@ -61,16 +63,25 @@ int main(){
 	srand(time(NULL));
 
 	dress(CLEAR, "2");
-	// 보드 초기화
-	for(r=0; r<R; r++){
-		for(c=0; c<C; c++){
-			board[r][c] = rand() < RAND_MAX / 10 ? ALIVE : NONE;
-		}
-	}
+	init_board(board);
+
 	run(board, R, C);
 
 	return 0;
 }
+
+void init_board(void *_b){
+	cell_type (*board)[C] = _b;
+	int i, j;
+
+	for(i = 0; i < R; i++){
+		for(j = 0; j < C; j++){
+			if(!(i*j*(i-R+1)*(j-C+1)))
+				board[i][j] = CT_WALL;
+		}
+	}
+}
+
 void dress(d_code code, char *msg, ...){
 	char buf[BUFSIZ] = { 27, '[', };
 	va_list args;
@@ -139,38 +150,77 @@ void draw(void *_b, int rows, int cols){
 }
 void draw_cell(cell_type cell){
 	switch(cell){
-		case NONE: printf(" "); break;
-		case ALIVE: dress(UNDERLINE, ""); dress(B_GREEN, " "); dress(INIT, ""); break;
+		case CT_NONE : printf(" "); break;
+		case CT_WALL : dress(B_WHITE, ""); printf(" "); dress(INIT, ""); break;
+		case CT_1_BRUISER : dress(F_GREEN, ""); printf("+"); dress(INIT, ""); break;
+		case CT_1_ASSASSIN : dress(F_GREEN, ""); printf("#"); dress(INIT, ""); break;
+		case CT_1_COMMANDER : dress(F_GREEN, ""); printf("@"); dress(INIT, ""); break;
+		case CT_2_BRUISER : dress(F_RED, ""); printf("+"); dress(INIT, ""); break;
+		case CT_2_ASSASSIN : dress(F_RED, ""); printf("#"); dress(INIT, ""); break;
+		case CT_2_COMMANDER : dress(F_RED, ""); printf("@"); dress(INIT, ""); break;
 		default: printf("Unhandled cell type: %d\n", cell);
 	}
 }
 void evolve(void *_b, int rows, int cols){
 	cell_type (*board)[cols] = _b;
 	cell_type new[rows][cols];
+	int cell_at[] = { 0 , 0, CAT_BRU, CAT_ASS, CAT_COM, CAT_BRU, CAT_ASS, CAT_COM};
+	int cell_hp[] = { 0 , 0, CHP_BRU, CHP_ASS, CHP_COM, CHP_BRU, CHP_ASS, CHP_COM};
+	int cell_sc[] = { 0 , 0, -CSC_BRU, -CSC_ASS, -CSC_COM, CSC_BRU, CSC_ASS, CSC_COM};
+	int cell_ow[] = { 0 , 0, -1, -1, -1, 1, 1, 1};
 	int r, c, n;
 	int x, y;
+	int as, sur, t, hp;
 
 	for(r=0; r<rows; r++){
 		for(c=0; c<cols; c++){
+			if(board[r][c] == CT_WALL){
+				new[r][c] = CT_WALL;
+				continue;
+			}
+
+			t = cell_ow[board[r][c]];
 			n = 0;
-			// 주변 유닛 수 계산
+			as = 0;
+			sur = 0;
+			hp = cell_hp[board[r][c]];
+
+			// 주변 유닛 수 계산 (음수는 플레이어1, 양수는 플레이어2)
 			for(y=r-1; y<=r+1; y++){
 				for(x=c-1; x<=c+1; x++){
-					if(board[(y+rows)%rows][(x+cols)%cols]) n++;
+					sur = (int)board[(y+rows)%rows][(x+cols)%cols];
+					n += cell_sc[sur];
+					if(t + cell_ow[sur] == 0) as += cell_at[sur];
 				}
 			}
-			if(board[r][c]) n--;
+
+
 			// 생사 결정
-			if(board[r][c]){
-				new[r][c] = (n == 2 || n == 3) ? ALIVE : NONE;
+			if(board[r][c] == CT_NONE){
+				new[r][c] = get_evolved_cell(n);
+			}else if(hp <= as){
+				new[r][c] = CT_NONE;
 			}else{
-				new[r][c] = (n == 3) ? ALIVE : NONE;
+				new[r][c] = board[r][c];
 			}
 		}
 	}
+	//원래 보드에 이번 턴의 생사 결정이 완료된 임시 보드를 복사
 	for(r=0; r<rows; r++){
 		for(c=0; c<cols; c++){
 			board[r][c] = new[r][c];
 		}
+	}
+}
+
+cell_type get_evolved_cell(int n){
+	switch (n) {
+		case -CCO_BRU:	return CT_1_BRUISER;
+		case -CCO_ASS:	return CT_1_ASSASSIN;
+		case -CCO_COM:	return CT_1_COMMANDER;
+		case CCO_BRU:	return CT_2_BRUISER;
+		case CCO_ASS:	return CT_2_ASSASSIN;
+		case CCO_COM:	return CT_2_COMMANDER;
+		default:		return CT_NONE;
 	}
 }
