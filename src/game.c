@@ -25,6 +25,10 @@
 #define CCO_ASS 3
 #define CCO_COM 4
 
+#define ENTRIES "entries_list"
+
+#define oops(m, x) {perror(m); exit(x);}
+
 typedef enum _d_code{
 	INIT,
 	// 특수
@@ -48,13 +52,27 @@ typedef enum _cell_type{
 	CT_2_COMMANDER
 } cell_type;
 
+typedef struct _cell_entry{
+	int x, y;
+	cell_type type;
+} cell_entry;
+
 void init_board(void*);
 void dress(d_code, char*, ...);
-void evolve(void*, int, int);
-void run(void*, int, int);
+
 void draw(void*, int, int);
 void draw_cell(cell_type);
+
+void evolve(void*, int, int);
 cell_type get_evolved_cell(int);
+
+void* smalloc(int);
+cell_entry** read_cell_entries(void);
+void draw_cell_entries(cell_entry**, void*, int);
+
+void run(void*, int, int);
+
+int entries;
 
 int main(){
 	cell_type board[R][C] = { CT_NONE, };
@@ -65,6 +83,7 @@ int main(){
 	dress(CLEAR, "2");
 	init_board(board);
 
+	draw_cell_entries(read_cell_entries(), board, C);
 	run(board, R, C);
 
 	return 0;
@@ -222,5 +241,49 @@ cell_type get_evolved_cell(int n){
 		case CCO_ASS:	return CT_2_ASSASSIN;
 		case CCO_COM:	return CT_2_COMMANDER;
 		default:		return CT_NONE;
+	}
+}
+
+void* smalloc(int size){
+	void *res;
+
+	if((res = malloc(size)) == NULL)
+		oops("malloc error", 1);
+	return res;
+}
+
+cell_entry** read_cell_entries(void){
+	cell_entry **res;
+	FILE *fp;
+	int i, j;
+	int entry_size;
+
+	fp = fopen(ENTRIES, "r");
+
+	fscanf(fp, "%d", &entries);
+
+	res = smalloc(sizeof(cell_entry*) * entries);
+
+	for(i = 0; i < entries; i++){
+		fscanf(fp, "%d", &entry_size);
+		res[i] = smalloc(sizeof(cell_entry) * entry_size);
+		for(j = 0; j < entry_size; j++){
+			fscanf(fp, "%d,%d,%d", &res[i][j].x, &res[i][j].y, &res[i][j].type);
+		}
+	}
+
+	return res;
+}
+
+void draw_cell_entries(cell_entry** entries_list, void *_b, int cols){
+	cell_type (*board)[cols] = _b;
+	cell_entry* temp;
+	int i, j;
+
+	for(i = 0; i < entries; i++){
+		temp = entries_list[i];
+		for(j = 0; temp[j].x != -1; j++){
+			board[temp[j].x][temp[j].y] = temp[j].type;
+		}
 	}
 }
