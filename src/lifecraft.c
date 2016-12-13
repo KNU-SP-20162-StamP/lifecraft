@@ -1,12 +1,19 @@
+
+#include <ctype.h>
+#include <fcntl.h>
+#include <pthread.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
-#include <unistd.h>
+#include <termios.h>
 #include <time.h>
+#include <unistd.h>
 
 #define R 33
 #define C 77
+#define RUN_CYCLE 200000
 
 // 점수
 #define CSC_BRU 1
@@ -25,7 +32,7 @@
 #define CCO_ASS 3
 #define CCO_COM 4
 
-#define ENTRIES "entries_list"
+#define ENTRIES "./entries_list"
 
 #define oops(m, x) {perror(m); exit(x);}
 
@@ -57,7 +64,18 @@ typedef struct _cell_entry{
 	cell_type type;
 } cell_entry;
 
+typedef struct _bm_args{
+	int bma_r, bma_c;
+	void *bma_b;
+} bm_args;
+
+void kio();
+void restore();
+void* key_manage(void*);
+void on_terminate(int);
+
 void init_board(void*);
+
 void dress(d_code, char*, ...);
 
 void draw(void*, int, int);
@@ -71,12 +89,22 @@ cell_entry** read_cell_entries(void);
 void draw_cell_entries(cell_entry**, void*, int);
 
 void run(void*, int, int);
+void* board_manage(void*);
 
+struct termios _ttystate;
 int entries;
+int key;
 
 int main(){
 	cell_type board[R][C] = { CT_NONE, };
+	pthread_t key_manager;
 	int r, c;
+	
+	pthread_create(&key_manager, NULL, key_manage, NULL);
+	
+	kio();
+	signal(SIGINT, on_terminate);
+	signal(SIGQUIT, on_terminate);
 
 	srand(time(NULL));
 
@@ -85,20 +113,48 @@ int main(){
 
 	draw_cell_entries(read_cell_entries(), board, C);
 	run(board, R, C);
+	
+	on_terminate(0);
+	pthread_join(key_manager, NULL);
 
 	return 0;
 }
 
-void init_board(void *_b){
-	cell_type (*board)[C] = _b;
-	int i, j;
-
-	for(i = 0; i < R; i++){
-		for(j = 0; j < C; j++){
-			if(!(i*j*(i-R+1)*(j-C+1)))
-				board[i][j] = CT_WALL;
+void* key_manage(void *arg){
+	while(1){
+		key = getchar() & 0xFF;
+		if(key == 27){
+			key |= (getchar() & 0xFF) << 8;
+			if(key == 0x5B1B){
+				key |= (getchar() & 0xFF) << 16;
+			}
 		}
+		printf("Key: %d %d %d\n", key >> 16, key >> 8 & 0xFF, key & 0xFF);
 	}
+	return NULL;
+}
+
+void kio(){
+	struct termios ttystate;
+	int ff;
+	
+	tcgetattr(0, &_ttystate);
+	tcgetattr(0, &ttystate);
+	ttystate.c_lflag &= ~ICANON;
+	ttystate.c_lflag &= ~ECHO;
+	ttystate.c_cc[VMIN] = 1;
+	tcsetattr(0, TCSANOW, &ttystate);
+}
+
+void restore(){
+	tcsetattr(0, TCSANOW, &_ttystate);
+}
+
+void on_terminate(int sig){
+	struct termios ttystate;
+	
+	restore();
+	exit(sig);
 }
 
 void dress(d_code code, char *msg, ...){
@@ -143,16 +199,37 @@ void dress(d_code code, char *msg, ...){
 	}
 	fputs(buf, stdout);
 }
-void run(void *_b, int rows, int cols){
-	cell_type (*board)[cols] = _b;
-	int gen = 0;
 
-	while(1){
-		draw(board, rows, cols);
-		printf("Gen #%d\n", gen++);
-		evolve(board, rows, cols);
-		usleep(200000);
+void init_board(void *_b){
+	cell_type (*board)[C] = _b;
+	int i, j;
+
+	for(i = 0; i < R; i++){
+		for(j = 0; j < C; j++){
+			if(!(i*j*(i-R+1)*(j-C+1)))
+				board[i][j] = CT_WALL;
+		}
 	}
+}
+void run(void *_b, int rows, int cols){
+	pthread_t board_manager;
+	bm_args args = { rows, cols, _b };
+
+	pthread_create(&board_manager, NULL, board_manage, &args);
+	pthread_join(board_manager, NULL);
+}
+void* board_manage(void *_args){
+	bm_args *args = (bm_args*)_args;
+	cell_type (*board)[args->bma_c] = args->bma_b;
+	int gen = 0;
+	
+	while(1){
+		draw(board, args->bma_r, args->bma_c);
+		printf("Gen #%d\n", gen++);
+		evolve(board, args->bma_r, args->bma_c);
+		usleep(RUN_CYCLE);
+	}
+	return _args;
 }
 void draw(void *_b, int rows, int cols){
 	cell_type (*board)[cols] = _b;
@@ -271,7 +348,6 @@ cell_entry** read_cell_entries(void){
 			fscanf(fp, "%d,%d,%d", &res[i][j].x, &res[i][j].y, &res[i][j].type);
 		}
 	}
-
 	return res;
 }
 
