@@ -11,11 +11,11 @@
 /*
 typedef struct
 {
-int up;		
-int down;	
+int up;
+int down;
 int left;
-int right;	
-int assasin;	
+int right;
+int assasin;
 int bruiser;
 int commander;
 }key_table;
@@ -23,29 +23,31 @@ int commander;
 key_table p1;// = {p1_up, p1_down, p1_left, p1_right, p1_assasin, p1_bruiser, p1_commander};
 key_table p2;// = {p2_up, p2_down, p2_left, p2_right, p2_assasin, P2_bruiser, p2_commander};
 */
-int p1_up	=	119;	//i
-int p1_down	=	115;	//k
-int p1_left	=	97;	//j
-int p1_right	=	100;	//l	
-int p1_assasin	=	49;	//숫자 1 아스키
-int p1_bruiser	=	50;	//2
-int p1_commander=	51;	//3
 
-int p1_assasin_score	= 3;
-int p1_bruiser_score 	= 3;
-int p1_commander_score 	= 3;
+int p1_up			=	105;	//w
+int p1_down		=	107;	//s
+int p1_left		=	106;	//a
+int p1_right		=	108;	//d
+int p1_assasin		=	49;	//1
+int p1_bruiser		=	50;	//2
+int p1_commander	=	51;	//3
 
-int p2_up       =           105;	//w
-int p2_down     =           107;	//s
-int p2_left     =           106;	//a
-int p2_right    =            108;	//d
-int p2_assasin  =            56;	//8
-int p2_bruiser  =            57;	//9
-int p2_commander=            48;	//0
+int p1_assasin_score	=	3;
+int p1_bruiser_score 	=	3;
+int p1_commander_score 	=	3;
 
-int p2_assasin_score    =   3;
-int p2_bruiser_score    =   3;
-int p2_commander_score  =   3;
+int p2_up			=	0x415B1B;	//방향키 up
+int p2_down		=	0x425B1B;	//방향키 down
+int p2_left		=	0x445B1B;	//방향키 left
+int p2_right		=	0x435B1B;	//방향키 right
+int p2_assasin		=	56;	//8
+int p2_bruiser		=	57;	//9
+int p2_commander	=	48;	//0
+
+
+int p2_assasin_score    =	3;
+int p2_bruiser_score    =	3;
+int p2_commander_score  =	3;
 
 typedef enum _cell_type{
 	CT_NONE,
@@ -94,10 +96,10 @@ while((p1_assasin_score != 0) || (p1_bruiser_score != 0) ||  (p1_commander_score
 	printf("%d",key);
 
 	if(key ==  p1_up)
-	{	
+	{
 		if(p1_row != 0)
 		p1_row -=1;
-	}		
+	}
 
 	else if( key ==  p1_down)
 	{
@@ -108,18 +110,18 @@ while((p1_assasin_score != 0) || (p1_bruiser_score != 0) ||  (p1_commander_score
 	{
 		if(p1_col != 0)
 		p1_col-=1;
-	}	
+	}
 	else if(key == p1_right)
 	{
 		if(p1_col != C-1)
 		p1_col +=1;
 	}
-	
+
 	else if(key ==  p2_up)
 	{
                 if(p2_row != 0)
 	        p2_row -= 1;
-	}	
+	}
 
 	else if(key == p2_down)
 	{
@@ -136,16 +138,16 @@ while((p1_assasin_score != 0) || (p1_bruiser_score != 0) ||  (p1_commander_score
 	else if (key == p2_right)
 	{
                 if(p2_col != C-1)
-		p2_col +=1;	
-	}	
+		p2_col +=1;
+	}
 	else if (key == p1_assasin)
 	{
 		if((p1_assasin_score!=0)&&(board[p1_row][p1_col] == NULL ))
 		{
 			p1_assasin_score--;
-			board[p1_row][p1_col] = CT_1_ASSASIN; 
+			board[p1_row][p1_col] = CT_1_ASSASIN;
 		}
-	}	
+	}
 	else if (key ==  p1_bruiser)
 	{
 	        if((p1_bruiser_score!=0)&&(board[p1_row][p1_col] == NULL ))
@@ -169,7 +171,7 @@ while((p1_assasin_score != 0) || (p1_bruiser_score != 0) ||  (p1_commander_score
 			p2_assasin_score--;
 			board[p2_row][p2_col] = CT_2_ASSASIN;
 			}
-	}	
+	}
 	else if (key ==  p2_bruiser)
 	{
 		if((p2_bruiser_score!=0) &&(board[p2_row][p2_col] == NULL))
@@ -177,7 +179,7 @@ while((p1_assasin_score != 0) || (p1_bruiser_score != 0) ||  (p1_commander_score
 			p2_bruiser_score--;
 			board[p2_row][p2_col] = CT_2_BRUISER;
 		}
-	}	
+	}
 	else if (key ==  p2_commander)
 	{
 		if((p2_commander_score!=0) && (board[p2_row][p2_col] == NULL))
@@ -198,4 +200,3 @@ void set_cr_noecho_mode(void)
         ttystate.c_cc[VMIN] = 1;
         tcsetattr( 0, TCSANOW, &ttystate);
 }
-
