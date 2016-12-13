@@ -1,4 +1,3 @@
-
 #include <ctype.h>
 #include <fcntl.h>
 #include <pthread.h>
@@ -10,114 +9,142 @@
 #include <termios.h>
 #include <time.h>
 #include <unistd.h>
+#include "lifecraft.h"
 
-#define R 33
-#define C 77
-#define RUN_CYCLE 200000
-
-// 점수
-#define CSC_BRU 1
-#define CSC_ASS 2
-#define CSC_COM 3
-// 방어력(체력)
-#define CHP_BRU 3
-#define CHP_ASS 1
-#define CHP_COM 2
-// 공격력
-#define CAT_BRU 1
-#define CAT_ASS 3
-#define CAT_COM 2
-// 탄생 비용
-#define CCO_BRU 2
-#define CCO_ASS 3
-#define CCO_COM 4
-
-#define ENTRIES "./entries_list"
-
-#define oops(m, x) {perror(m); exit(x);}
-
-typedef enum _d_code{
-	INIT,
-	// 특수
-	CLEAR, SET_POS, NEXT_LINE,
-	// 글자 속성
-	BOLD, UNDERLINE,
-	// 글자 색상
-	F_BLACK, F_RED, F_GREEN, F_YELLOW, F_BLUE, F_MAGENTA, F_CYAN, F_WHITE,
-	// 배경 색상
-	B_BLACK, B_RED, B_GREEN, B_YELLOW, B_BLUE, B_MAGENTA, B_CYAN, B_WHITE
-} d_code;
-
-typedef enum _cell_type{
-	CT_NONE,
-	CT_WALL,
-	CT_1_BRUISER,
-	CT_1_ASSASSIN,
-	CT_1_COMMANDER,
-	CT_2_BRUISER,
-	CT_2_ASSASSIN,
-	CT_2_COMMANDER
-} cell_type;
-
-typedef struct _cell_entry{
-	int x, y;
-	cell_type type;
-} cell_entry;
-
-typedef struct _bm_args{
-	int bma_r, bma_c;
-	void *bma_b;
-} bm_args;
-
-void kio();
-void restore();
-void* key_manage(void*);
-void on_terminate(int);
-
-void init_board(void*);
-
-void dress(d_code, char*, ...);
-
-void draw(void*, int, int);
-void draw_cell(cell_type);
-
-void evolve(void*, int, int);
-cell_type get_evolved_cell(int);
-
-void* smalloc(int);
-cell_entry** read_cell_entries(void);
-void draw_cell_entries(cell_entry**, void*, int);
-
-void run(void*, int, int);
-void* board_manage(void*);
-
+pthread_mutex_t main_lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t main_cond = PTHREAD_COND_INITIALIZER;
 struct termios _ttystate;
+int p1_av[3], p2_av[3];
+int p1_row = 1, p1_col = 1, p2_row = 1, p2_col = 1;
 int entries;
+int mode;
 int key;
 
 int main(){
+	void (*menu_items[])(void*) = { NULL, menu_title, menu_ready, menu_go, menu_result };
+	menu (*prom_items[])(void*) = { NULL, prom_title, prom_ready, prom_go, prom_result };
+	
 	cell_type board[R][C] = { CT_NONE, };
 	pthread_t key_manager;
+	menu state = TITLE, next;
 	int r, c;
+
+	srand(time(NULL));
 	
 	pthread_create(&key_manager, NULL, key_manage, NULL);
-	
+	pthread_mutex_lock(&main_lock);
 	kio();
 	signal(SIGINT, on_terminate);
 	signal(SIGQUIT, on_terminate);
-
-	srand(time(NULL));
-
-	dress(CLEAR, "2");
-	init_board(board);
-
-	draw_cell_entries(read_cell_entries(), board, C);
-	run(board, R, C);
 	
+	while(1){
+		DRESS_NEW;
+		if(state == END) break;
+		menu_items[state](board);
+		printf("\n");
+		pthread_cond_wait(&main_cond, &main_lock);
+		if((next = prom_items[state](board)) != MENU_NONE) state = next;
+	}
+	pthread_mutex_unlock(&main_lock);
+	pthread_cancel(key_manager);
 	on_terminate(0);
-	pthread_join(key_manager, NULL);
 
 	return 0;
+}
+
+void draw_option(char key, char *desc){
+	dress(F_GREEN, "[%c]", key);
+	DRESS_INIT;
+	printf(" %s ", desc);
+}
+void menu_title(void *_b){
+	printf("Hello, World!\n");
+	draw_option(K_MODE_1P, "One Player");
+	draw_option(K_MODE_2P, "Two Players");
+	draw_option(K_QUIT, "Quit");
+}
+void menu_ready(void *_b){
+	dress(CLEAR, "2");
+	draw(_b, R, C);
+	
+	dress(SET_POS, dress_pos(p1_row + 1, p1_col + 1));
+	dress(F_GREEN, ":");
+	DRESS_INIT;
+	if(mode == 2){
+		// 2P 커서 위치 출력
+	}
+	dress(SET_POS, dress_pos(R+1, 0));
+	
+	if(mode == 1){
+		draw_option(K_P1_apply, "OK");
+		// 1P 선택
+	}else{
+		// 2P 선택
+	}
+}
+void menu_go(void *_b){
+	draw_cell_entries(read_cell_entries(), _b, C);
+	run(_b, R, C);
+	// run이 끝남
+	printf("\n종료!\n계속하려면 아무 키나 누르십시오.\n");
+}
+void menu_result(void *_b){
+	printf("\n결과...\n");
+	draw_option(K_RETRY, "Retry");
+	draw_option(K_TITLE, "Back to Title");
+}
+menu prom_title(void *_b){
+	switch(key){
+		case K_MODE_1P: init_board(_b); return mode = 1, READY;
+		case K_MODE_2P: init_board(_b); return mode = 2, READY;
+		case K_QUIT: return END;
+		default: break;
+	}
+	return MENU_NONE;
+}
+menu prom_ready(void *_b){
+	BOARD(_b);
+
+	if(mode == 1){
+		switch(key){
+			case K_P1_apply: return GO;
+			case K_P1_up: p1_row = MAX(p1_row-1, 1); break;
+			case K_P1_down: p1_row = MIN(p1_row+1, R-2); break;
+			case K_P1_left: p1_col = MAX(p1_col-1, 1); break;
+			case K_P1_right: p1_col = MIN(p1_col+1, C-2); break;
+			case K_P1_bruiser: if(p1_av[0] > 0 && !board[p1_row][p1_col]){
+				p1_av[0]--; board[p1_row][p1_col] = CT_1_BRUISER;
+			} break;
+			case K_P1_assassin: if(p1_av[1] > 0 && !board[p1_row][p1_col]){
+				p1_av[1]--; board[p1_row][p1_col] = CT_1_ASSASSIN;
+			} break;
+			case K_P1_commander: if(p1_av[2] > 0 && !board[p1_row][p1_col]){
+				p1_av[2]--; board[p1_row][p1_col] = CT_1_COMMANDER;
+			} break;
+			case K_P1_delete: break; // 보드에 있는게 자기 것일 때 지워야 한다.
+			default: break;
+		}
+	}else{
+		
+	}
+	return MENU_NONE;
+}
+char* dress_pos(int r, int c){
+	static char res[BUFSIZ];
+	
+	sprintf(res, "%d;%d", r, c);
+	return res;
+}
+menu prom_go(void *_b){
+	return RESULT;
+}
+menu prom_result(void *_b){
+	switch(key){
+		case K_RETRY: init_board(_b); return READY;
+		case K_TITLE: return TITLE;
+		default: break;
+	}
+	return MENU_NONE;
 }
 
 void* key_manage(void *arg){
@@ -129,7 +156,8 @@ void* key_manage(void *arg){
 				key |= (getchar() & 0xFF) << 16;
 			}
 		}
-		printf("Key: %d %d %d\n", key >> 16, key >> 8 & 0xFF, key & 0xFF);
+		pthread_cond_signal(&main_cond);
+		// printf("Key: %d %d %d\n", key >> 16, key >> 8 & 0xFF, key & 0xFF);
 	}
 	return NULL;
 }
@@ -208,8 +236,13 @@ void init_board(void *_b){
 		for(j = 0; j < C; j++){
 			if(!(i*j*(i-R+1)*(j-C+1)))
 				board[i][j] = CT_WALL;
+			else
+				board[i][j] = CT_NONE;
 		}
 	}
+	p1_av[0] = p2_av[0] = P_bruiser_score;
+	p1_av[1] = p2_av[1] = P_assassin_score;
+	p1_av[2] = p2_av[2] = P_commander_score;
 }
 void run(void *_b, int rows, int cols){
 	pthread_t board_manager;
@@ -223,7 +256,11 @@ void* board_manage(void *_args){
 	cell_type (*board)[args->bma_c] = args->bma_b;
 	int gen = 0;
 	
-	while(1){
+	//while(1){
+	while(gen < 100){
+		// 한 쪽이 전멸하거나
+		// 제한 시간이 지나는 경우 while문 탈출
+		
 		draw(board, args->bma_r, args->bma_c);
 		printf("Gen #%d\n", gen++);
 		evolve(board, args->bma_r, args->bma_c);
@@ -247,13 +284,13 @@ void draw(void *_b, int rows, int cols){
 void draw_cell(cell_type cell){
 	switch(cell){
 		case CT_NONE : printf(" "); break;
-		case CT_WALL : dress(B_WHITE, ""); printf(" "); dress(INIT, ""); break;
-		case CT_1_BRUISER : dress(F_GREEN, ""); printf("+"); dress(INIT, ""); break;
-		case CT_1_ASSASSIN : dress(F_GREEN, ""); printf("#"); dress(INIT, ""); break;
-		case CT_1_COMMANDER : dress(F_GREEN, ""); printf("@"); dress(INIT, ""); break;
-		case CT_2_BRUISER : dress(F_RED, ""); printf("+"); dress(INIT, ""); break;
-		case CT_2_ASSASSIN : dress(F_RED, ""); printf("#"); dress(INIT, ""); break;
-		case CT_2_COMMANDER : dress(F_RED, ""); printf("@"); dress(INIT, ""); break;
+		case CT_WALL : dress(B_WHITE, ""); printf(" "); DRESS_INIT; break;
+		case CT_1_BRUISER : dress(F_GREEN, ""); printf("+"); DRESS_INIT; break;
+		case CT_1_ASSASSIN : dress(F_GREEN, ""); printf("#"); DRESS_INIT; break;
+		case CT_1_COMMANDER : dress(F_GREEN, ""); printf("@"); DRESS_INIT; break;
+		case CT_2_BRUISER : dress(F_RED, ""); printf("+"); DRESS_INIT; break;
+		case CT_2_ASSASSIN : dress(F_RED, ""); printf("#"); DRESS_INIT; break;
+		case CT_2_COMMANDER : dress(F_RED, ""); printf("@"); DRESS_INIT; break;
 		default: printf("Unhandled cell type: %d\n", cell);
 	}
 }
