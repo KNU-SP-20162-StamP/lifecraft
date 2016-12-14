@@ -11,11 +11,13 @@
 #include <unistd.h>
 #include "lifecraft.h"
 
+#define max_gen 100
 pthread_mutex_t main_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t main_cond = PTHREAD_COND_INITIALIZER;
 struct termios _ttystate;
 int p1_av[3], p2_av[3];
 int p1_row = 1, p1_col = 1, p2_row = 1, p2_col = 1;
+int p1_alive_num = 0, p2_alive_num = 0;//몇개 살아있는지
 int entries;
 int mode;
 int key;
@@ -62,6 +64,7 @@ void menu_title(void *_b){
 	draw_option(K_MODE_1P, "One Player");
 	draw_option(K_MODE_2P, "Two Players");
 	draw_option(K_QUIT, "Quit");
+	printf("");
 }
 void menu_ready(void *_b){
 	dress(CLEAR, "2");
@@ -71,6 +74,8 @@ void menu_ready(void *_b){
 	dress(F_GREEN, ":");
 	DRESS_INIT;
 	if(mode == 2){
+	dress(SET_POS, dress_pos(p2_row + 1 , p2_col + 1));
+	dress(F_RED, ":");
 		// 2P 커서 위치 출력
 	}
 	dress(SET_POS, dress_pos(R+1, 0));
@@ -79,7 +84,7 @@ void menu_ready(void *_b){
 		draw_option(K_P1_apply, "OK");
 		// 1P 선택
 	}else{
-		// 2P 선택
+		draw_option(K_P1_apply, "OK");	// 2P 선택
 	}
 }
 void menu_go(void *_b){
@@ -90,6 +95,16 @@ void menu_go(void *_b){
 }
 void menu_result(void *_b){
 	printf("\n결과...\n");
+	if(mode == 1)
+		printf("%d 마리 생존\n",p1_alive_num);
+	if(mode == 2){
+		printf("1p %d마리: 2p %d 마리 생존\n",p1_alive_num,p2_alive_num);
+		if(p1_alive_num > p2_alive_num)
+			printf("1p 승리\n");
+		else if(p1_alive_num < p2_alive_num)
+			printf("2p 승리\n");
+		else printf("무승부\n");
+	}
 	draw_option(K_RETRY, "Retry");
 	draw_option(K_TITLE, "Back to Title");
 }
@@ -105,27 +120,49 @@ menu prom_title(void *_b){
 menu prom_ready(void *_b){
 	BOARD(_b);
 
-	if(mode == 1){
+	switch(key){
+		case K_P1_apply: return GO;
+		case K_P1_up: p1_row = MAX(p1_row-1, 1); break;
+		case K_P1_down: p1_row = MIN(p1_row+1, R-2); break;
+		case K_P1_left: p1_col = MAX(p1_col-1, 1); break;
+		case K_P1_right: p1_col = MIN(p1_col+1, C-2); break;
+		case K_P1_bruiser: if(p1_av[0] > 0 && !board[p1_row][p1_col]){
+			p1_av[0]--; board[p1_row][p1_col] = CT_1_BRUISER;
+			p1_alive_num++;
+		} break;
+		case K_P1_assassin: if(p1_av[1] > 0 && !board[p1_row][p1_col]){
+			p1_av[1]--; board[p1_row][p1_col] = CT_1_ASSASSIN;
+			p1_alive_num++;	
+		} break;
+		case K_P1_commander: if(p1_av[2] > 0 && !board[p1_row][p1_col]){
+			p1_av[2]--; board[p1_row][p1_col] = CT_1_COMMANDER;
+			p1_alive_num++;
+		} break;
+		case K_P1_delete: break; // 보드에 있는게 자기 것일 때 지워야 한다.
+		default: break;
+	}
+	if(mode == 2){
 		switch(key){
-			case K_P1_apply: return GO;
-			case K_P1_up: p1_row = MAX(p1_row-1, 1); break;
-			case K_P1_down: p1_row = MIN(p1_row+1, R-2); break;
-			case K_P1_left: p1_col = MAX(p1_col-1, 1); break;
-			case K_P1_right: p1_col = MIN(p1_col+1, C-2); break;
-			case K_P1_bruiser: if(p1_av[0] > 0 && !board[p1_row][p1_col]){
-				p1_av[0]--; board[p1_row][p1_col] = CT_1_BRUISER;
+			case K_P2_apply: return GO;
+			case K_P2_up: p2_row = MAX(p2_row-1, 1); break;
+			case K_P2_down: p2_row = MIN(p2_row+1, R-2); break;
+			case K_P2_left: p2_col = MAX(p2_col-1, 1); break;
+			case K_P2_right: p2_col = MIN(p2_col+1, C-2); break;
+			case K_P2_bruiser: if(p2_av[0] > 0 && !board[p2_row][p2_col]){
+				p2_av[0]--; board[p2_row][p2_col] = CT_2_BRUISER;
+				p2_alive_num++;
 			} break;
-			case K_P1_assassin: if(p1_av[1] > 0 && !board[p1_row][p1_col]){
-				p1_av[1]--; board[p1_row][p1_col] = CT_1_ASSASSIN;
+			case K_P2_assassin: if(p2_av[1] > 0 && !board[p2_row][p2_col]){
+				p2_av[1]--; board[p2_row][p2_col] = CT_2_ASSASSIN;
+				p2_alive_num++;
 			} break;
-			case K_P1_commander: if(p1_av[2] > 0 && !board[p1_row][p1_col]){
-				p1_av[2]--; board[p1_row][p1_col] = CT_1_COMMANDER;
+			case K_P2_commander: if(p2_av[2] > 0 && !board[p2_row][p2_col]){
+				p2_av[2]--; board[p2_row][p2_col] = CT_2_COMMANDER;
+				p2_alive_num++;
 			} break;
-			case K_P1_delete: break; // 보드에 있는게 자기 것일 때 지워야 한다.
+			case K_P2_delete: break;
 			default: break;
 		}
-	}else{
-		
 	}
 	return MENU_NONE;
 }
@@ -139,15 +176,15 @@ menu prom_go(void *_b){
 	return RESULT;
 }
 menu prom_result(void *_b){
+
 	switch(key){
 		case K_RETRY: init_board(_b); return READY;
 		case K_TITLE: return TITLE;
 		default: break;
 	}
-	return MENU_NONE;
+	return MENU_NONE;	
 }
-
-void* key_manage(void *arg){
+void* key_manage(void*arg){
 	while(1){
 		key = getchar() & 0xFF;
 		if(key == 27){
@@ -255,12 +292,14 @@ void* board_manage(void *_args){
 	bm_args *args = (bm_args*)_args;
 	cell_type (*board)[args->bma_c] = args->bma_b;
 	int gen = 0;
-	
-	//while(1){
-	while(gen < 100){
-		// 한 쪽이 전멸하거나
-		// 제한 시간이 지나는 경우 while문 탈출
+	while(1){
+		// 한 쪽이 전멸하거나:wq
+		if(mode ==2 && (p1_alive_num == 0 || p2_alive_num == 0))
+			break;
 		
+		if(gen > max_gen)	// 제한 시간이 지나는 경우 while문 탈출
+			break;	
+
 		draw(board, args->bma_r, args->bma_c);
 		printf("Gen #%d\n", gen++);
 		evolve(board, args->bma_r, args->bma_c);
@@ -297,6 +336,8 @@ void draw_cell(cell_type cell){
 void evolve(void *_b, int rows, int cols){
 	cell_type (*board)[cols] = _b;
 	cell_type new[rows][cols];
+	cell_type temp;
+
 	int cell_at[] = { 0 , 0, CAT_BRU, CAT_ASS, CAT_COM, CAT_BRU, CAT_ASS, CAT_COM};
 	int cell_hp[] = { 0 , 0, CHP_BRU, CHP_ASS, CHP_COM, CHP_BRU, CHP_ASS, CHP_COM};
 	int cell_sc[] = { 0 , 0, -CSC_BRU, -CSC_ASS, -CSC_COM, CSC_BRU, CSC_ASS, CSC_COM};
@@ -327,11 +368,27 @@ void evolve(void *_b, int rows, int cols){
 				}
 			}
 
-
 			// 생사 결정
 			if(board[r][c] == CT_NONE){
-				new[r][c] = get_evolved_cell(n);
+				temp  = get_evolved_cell(n);
+				new[r][c] = temp;
+				switch(temp){
+				case CT_1_ASSASSIN :
+				case CT_1_BRUISER :
+				case CT_1_COMMANDER : p1_alive_num++; break;
+				case CT_2_ASSASSIN :
+				case CT_2_BRUISER :
+				case CT_2_COMMANDER : p2_alive_num ++; break; 		
+				}
 			}else if(hp <= as){
+				switch(new[r][c]){
+                                case CT_1_ASSASSIN :
+                                case CT_1_BRUISER :
+                                case CT_1_COMMANDER : p1_alive_num --; break;
+                                case CT_2_ASSASSIN :
+                                case CT_2_BRUISER :
+                                case CT_2_COMMANDER : p2_alive_num --; break;
+				}
 				new[r][c] = CT_NONE;
 			}else{
 				new[r][c] = board[r][c];
