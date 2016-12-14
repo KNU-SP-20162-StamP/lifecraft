@@ -18,6 +18,7 @@ struct termios _ttystate;
 int p1_av[3], p2_av[3];
 int p1_row = 1, p1_col = 1, p2_row = 1, p2_col = 1;
 int p1_alive_num = 0, p2_alive_num = 0;//몇개 살아있는지
+int cell_null;
 int entries;
 int mode;
 int key;
@@ -25,20 +26,20 @@ int key;
 int main(){
 	void (*menu_items[])(void*) = { NULL, menu_title, menu_ready, menu_go, menu_result };
 	menu (*prom_items[])(void*) = { NULL, prom_title, prom_ready, prom_go, prom_result };
-	
+
 	cell_type board[R][C] = { CT_NONE, };
 	pthread_t key_manager;
 	menu state = TITLE, next;
 	int r, c;
 
 	srand(time(NULL));
-	
+
 	pthread_create(&key_manager, NULL, key_manage, NULL);
 	pthread_mutex_lock(&main_lock);
 	kio();
 	signal(SIGINT, on_terminate);
 	signal(SIGQUIT, on_terminate);
-	
+
 	while(1){
 		DRESS_NEW;
 		if(state == END) break;
@@ -64,12 +65,12 @@ void menu_title(void *_b){
 	draw_option(K_MODE_1P, "One Player");
 	draw_option(K_MODE_2P, "Two Players");
 	draw_option(K_QUIT, "Quit");
-	printf("");
+
 }
 void menu_ready(void *_b){
 	dress(CLEAR, "2");
 	draw(_b, R, C);
-	
+
 	dress(SET_POS, dress_pos(p1_row + 1, p1_col + 1));
 	dress(F_GREEN, ":");
 	DRESS_INIT;
@@ -79,7 +80,7 @@ void menu_ready(void *_b){
 		// 2P 커서 위치 출력
 	}
 	dress(SET_POS, dress_pos(R+1, 0));
-	
+
 	if(mode == 1){
 		draw_option(K_P1_apply, "OK");
 		// 1P 선택
@@ -88,7 +89,8 @@ void menu_ready(void *_b){
 	}
 }
 void menu_go(void *_b){
-	draw_cell_entries(read_cell_entries(), _b, C);
+	if(mode == 1)
+		draw_cell_entries(read_cell_entries(), _b, C);
 	run(_b, R, C);
 	// run이 끝남
 	printf("\n종료!\n계속하려면 아무 키나 누르십시오.\n");
@@ -128,15 +130,15 @@ menu prom_ready(void *_b){
 		case K_P1_right: p1_col = MIN(p1_col+1, C-2); break;
 		case K_P1_bruiser: if(p1_av[0] > 0 && !board[p1_row][p1_col]){
 			p1_av[0]--; board[p1_row][p1_col] = CT_1_BRUISER;
-			p1_alive_num++;
+			//p1_alive_num++;
 		} break;
 		case K_P1_assassin: if(p1_av[1] > 0 && !board[p1_row][p1_col]){
 			p1_av[1]--; board[p1_row][p1_col] = CT_1_ASSASSIN;
-			p1_alive_num++;	
+			//p1_alive_num++;
 		} break;
 		case K_P1_commander: if(p1_av[2] > 0 && !board[p1_row][p1_col]){
 			p1_av[2]--; board[p1_row][p1_col] = CT_1_COMMANDER;
-			p1_alive_num++;
+			//p1_alive_num++;
 		} break;
 		case K_P1_delete: break; // 보드에 있는게 자기 것일 때 지워야 한다.
 		default: break;
@@ -150,15 +152,12 @@ menu prom_ready(void *_b){
 			case K_P2_right: p2_col = MIN(p2_col+1, C-2); break;
 			case K_P2_bruiser: if(p2_av[0] > 0 && !board[p2_row][p2_col]){
 				p2_av[0]--; board[p2_row][p2_col] = CT_2_BRUISER;
-				p2_alive_num++;
 			} break;
 			case K_P2_assassin: if(p2_av[1] > 0 && !board[p2_row][p2_col]){
 				p2_av[1]--; board[p2_row][p2_col] = CT_2_ASSASSIN;
-				p2_alive_num++;
 			} break;
 			case K_P2_commander: if(p2_av[2] > 0 && !board[p2_row][p2_col]){
 				p2_av[2]--; board[p2_row][p2_col] = CT_2_COMMANDER;
-				p2_alive_num++;
 			} break;
 			case K_P2_delete: break;
 			default: break;
@@ -168,7 +167,7 @@ menu prom_ready(void *_b){
 }
 char* dress_pos(int r, int c){
 	static char res[BUFSIZ];
-	
+
 	sprintf(res, "%d;%d", r, c);
 	return res;
 }
@@ -182,7 +181,7 @@ menu prom_result(void *_b){
 		case K_TITLE: return TITLE;
 		default: break;
 	}
-	return MENU_NONE;	
+	return MENU_NONE;
 }
 void* key_manage(void*arg){
 	while(1){
@@ -202,7 +201,7 @@ void* key_manage(void*arg){
 void kio(){
 	struct termios ttystate;
 	int ff;
-	
+
 	tcgetattr(0, &_ttystate);
 	tcgetattr(0, &ttystate);
 	ttystate.c_lflag &= ~ICANON;
@@ -217,7 +216,7 @@ void restore(){
 
 void on_terminate(int sig){
 	struct termios ttystate;
-	
+
 	restore();
 	exit(sig);
 }
@@ -292,17 +291,30 @@ void* board_manage(void *_args){
 	bm_args *args = (bm_args*)_args;
 	cell_type (*board)[args->bma_c] = args->bma_b;
 	int gen = 0;
+
 	while(1){
-		// 한 쪽이 전멸하거나:wq
-		if(mode ==2 && (p1_alive_num == 0 || p2_alive_num == 0))
-			break;
-		
-		if(gen > max_gen)	// 제한 시간이 지나는 경우 while문 탈출
-			break;	
 
 		draw(board, args->bma_r, args->bma_c);
 		printf("Gen #%d\n", gen++);
+
+		p1_alive_num = 0;
+		p2_alive_num = 0;
+
 		evolve(board, args->bma_r, args->bma_c);
+
+		dress(F_GREEN, "");
+		printf("1p : %d  ", p1_alive_num);
+		dress(F_RED, "");
+		printf("2p : %d\n", p2_alive_num);
+		DRESS_INIT;
+
+		// 한 쪽이 전멸하거나
+		if(mode == 2 && (p1_alive_num == 0 || p2_alive_num == 0))
+			break;
+
+		if(gen > max_gen)	// 제한 시간이 지나는 경우 while문 탈출
+			break;
+
 		usleep(RUN_CYCLE);
 	}
 	return _args;
@@ -344,10 +356,15 @@ void evolve(void *_b, int rows, int cols){
 	int cell_ow[] = { 0 , 0, -1, -1, -1, 1, 1, 1};
 	int r, c, n;
 	int x, y;
-	int as, sur, t, hp;
+	int as, sur, t, hp, sur_n;
 
 	for(r=0; r<rows; r++){
 		for(c=0; c<cols; c++){
+			if(cell_ow[board[r][c]] == -1)	//현재 보드에 남아있는 유닛 수 계산
+				p1_alive_num++;
+			else if(cell_ow[board[r][c]] == 1)
+				p2_alive_num++;
+
 			if(board[r][c] == CT_WALL){
 				new[r][c] = CT_WALL;
 				continue;
@@ -357,6 +374,7 @@ void evolve(void *_b, int rows, int cols){
 			n = 0;
 			as = 0;
 			sur = 0;
+			sur_n = 0;
 			hp = cell_hp[board[r][c]];
 
 			// 주변 유닛 수 계산 (음수는 플레이어1, 양수는 플레이어2)
@@ -364,31 +382,16 @@ void evolve(void *_b, int rows, int cols){
 				for(x=c-1; x<=c+1; x++){
 					sur = (int)board[(y+rows)%rows][(x+cols)%cols];
 					n += cell_sc[sur];
+					if(cell_ow[board[r][c]] == cell_ow[sur])
+						sur_n++;
 					if(t + cell_ow[sur] == 0) as += cell_at[sur];
 				}
 			}
 
 			// 생사 결정
 			if(board[r][c] == CT_NONE){
-				temp  = get_evolved_cell(n);
-				new[r][c] = temp;
-				switch(temp){
-				case CT_1_ASSASSIN :
-				case CT_1_BRUISER :
-				case CT_1_COMMANDER : p1_alive_num++; break;
-				case CT_2_ASSASSIN :
-				case CT_2_BRUISER :
-				case CT_2_COMMANDER : p2_alive_num ++; break; 		
-				}
-			}else if(hp <= as){
-				switch(new[r][c]){
-                                case CT_1_ASSASSIN :
-                                case CT_1_BRUISER :
-                                case CT_1_COMMANDER : p1_alive_num --; break;
-                                case CT_2_ASSASSIN :
-                                case CT_2_BRUISER :
-                                case CT_2_COMMANDER : p2_alive_num --; break;
-				}
+				new[r][c] = get_evolved_cell(n);
+			}else if(hp <= as || sur_n >= DIE_POINT){
 				new[r][c] = CT_NONE;
 			}else{
 				new[r][c] = board[r][c];
@@ -417,9 +420,9 @@ cell_type get_evolved_cell(int n){
 
 void* smalloc(int size){
 	void *res;
-
 	if((res = malloc(size)) == NULL)
 		oops("malloc error", 1);
+
 	return res;
 }
 
@@ -448,12 +451,10 @@ cell_entry** read_cell_entries(void){
 void draw_cell_entries(cell_entry** entries_list, void *_b, int cols){
 	cell_type (*board)[cols] = _b;
 	cell_entry* temp;
-	int i, j;
+	int i;
 
-	for(i = 0; i < entries; i++){
-		temp = entries_list[i];
-		for(j = 0; temp[j].x != -1; j++){
-			board[temp[j].x][temp[j].y] = temp[j].type;
-		}
+	temp = entries_list[rand() % entries];
+	for(i = 0; temp[i].x != -1; i++){
+		board[temp[i].x][temp[i].y] = temp[i].type;
 	}
 }

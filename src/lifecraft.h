@@ -18,6 +18,8 @@
 #define CCO_BRU 2
 #define CCO_ASS 3
 #define CCO_COM 4
+//죽을 조건
+#define DIE_POINT 2
 // 키
 #define K_QUIT 'q'
 #define K_MODE_1P '1'
@@ -37,8 +39,8 @@
 
 #define K_P2_up 0x415B1B	//방향키 up
 #define K_P2_down 0x425B1B	//방향키 down
-#define K_P2_left 0x445B1B	//방향키 left
 #define K_P2_right 0x435B1B	//방향키 right
+#define K_P2_left 0x445B1B	//방향키 left
 #define K_P2_assassin 'm'	//m
 #define K_P2_bruiser ','	//,
 #define K_P2_commander '.'	//.
