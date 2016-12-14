@@ -24,6 +24,7 @@
 #define K_QUIT 'q'
 #define K_MODE_1P '1'
 #define K_MODE_2P '2'
+#define K_EXPLAIN '3' //게임 설명
 #define K_RETRY 'r'
 #define K_TITLE 't'
 
@@ -74,7 +75,7 @@ typedef enum _d_code{
 
 typedef enum _menu{
 	MENU_NONE,
-	TITLE, READY, GO, RESULT, END
+	TITLE, READY, GO, RESULT, END, EXPLAIN
 } menu;
 
 typedef enum _cell_type{
@@ -125,7 +126,10 @@ void menu_title(void*);
 void menu_ready(void*);
 void menu_go(void*);
 void menu_result(void*);
+void menu_explain(void*);
+
 menu prom_title(void*);
 menu prom_ready(void*);
 menu prom_go(void*);
 menu prom_result(void*);
+menu prom_explain(void*);

@@ -24,8 +24,8 @@ int mode;
 int key;
 
 int main(){
-	void (*menu_items[])(void*) = { NULL, menu_title, menu_ready, menu_go, menu_result };
-	menu (*prom_items[])(void*) = { NULL, prom_title, prom_ready, prom_go, prom_result };
+	void (*menu_items[])(void*) = { NULL, menu_title, menu_ready, menu_go, menu_result ,menu_explain};
+	menu (*prom_items[])(void*) = { NULL, prom_title, prom_ready, prom_go, prom_result ,prom_explain};
 
 	cell_type board[R][C] = { CT_NONE, };
 	pthread_t key_manager;
@@ -54,18 +54,61 @@ int main(){
 
 	return 0;
 }
+menu prom_explain(void *_b)
+{
+	 return EXPLAIN;
+}
 
 void draw_option(char key, char *desc){
 	dress(F_GREEN, "[%c]", key);
 	DRESS_INIT;
 	printf(" %s ", desc);
 }
+void menu_explain(void*b)
+{
+	printf("조작키 설명\n");
+	printf("1P\n");
+	dress(F_GREEN,"");
+        printf("□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□\n");
+        printf("□          r:어새신  t:탱커  y:커맨더 u:선택완료 □\n");
+        printf("□     w:상                                       □\n");
+        printf("□a:좌 s:하 d:우                                  □\n");
+    	printf("□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□\n");
+	DRESS_INIT;
+        printf("2P\n");
+        dress(F_RED,"");
+        printf("□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□\n");
+        printf("□m:어새신  ,:탱커  .:커맨더 /:선택완료           □\n");
+        printf("□     					↑:상     □\n");
+        printf("□		 	           ←:좌 ↓:하 →:우□\n");
+	printf("□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□\n");
+        DRESS_INIT;
+	printf("유닛 설명\n");
+	printf("# : ASSASIN   높은 공격력을 지닌 유닛\n");
+	printf("+ : BRUISER   높은 방어력을 지닌 유닛\n");
+	printf("@ : COMMANDER 적절한 공격력과 방어력을 지닌 유닛\n");
+	printf("게임설명\n");
+	printf("각 유닛을 3마리씩 배치하세요.그러면 전투는 자동으로 시작될 것입니다.\n");
+	printf("근처에 아군이 있으면 유닛이 추가로 생성되고 적들과 만나면 죽거나 생존합니다.\n");
+	printf("전략적인 배치를 통해 승리를 쟁취하십시오\n");
+}
 void menu_title(void *_b){
-	printf("Hello, World!\n");
+	int color_change=1;
+        dress(F_CYAN, "" );
+	printf("□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□\n");
+	printf("□■      ■■■■■  ■■■■■■  ■■■■■■    ■■■■  ■■■■■      ■     ■■■■■■  ■■■■■■■□\n");
+	printf("□■        ■    ■       ■        ■      ■    ■    ■ ■    ■          ■   □\n");
+	printf("□■        ■    ■       ■       ■       ■    ■   ■   ■   ■          ■   □\n");
+	printf("□■        ■    ■■■■    ■■■■■■  ■       ■■■■■   ■■■■■■■  ■■■■       ■   □\n");
+	printf("□■        ■    ■       ■       ■       ■   ■   ■     ■  ■          ■   □\n");
+	printf("□■        ■    ■       ■        ■      ■    ■  ■     ■  ■          ■   □\n");
+	printf("□■■■■■  ■■■■■  ■       ■■■■■■    ■■■■  ■    ■  ■     ■  ■          ■   □\n");
+	printf("□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□\n");
+	DRESS_INIT;
 	draw_option(K_MODE_1P, "One Player");
 	draw_option(K_MODE_2P, "Two Players");
+	draw_option(K_EXPLAIN, "게임 설명");
 	draw_option(K_QUIT, "Quit");
-
 }
 void menu_ready(void *_b){
 	dress(CLEAR, "2");
@@ -96,29 +139,92 @@ void menu_go(void *_b){
 	printf("\n종료!\n계속하려면 아무 키나 누르십시오.\n");
 }
 void menu_result(void *_b){
-	printf("\n결과...\n");
-	if(mode == 1)
-		printf("%d 마리 생존\n",p1_alive_num);
-	if(mode == 2){
-		printf("1p %d마리: 2p %d 마리 생존\n",p1_alive_num,p2_alive_num);
+        dress(F_CYAN, "" );
+	printf("□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□\n");
+	printf("□■■■■■   ■■■■■■   ■■■■   ■     ■  ■       ■■■■■■■□\n");
+        printf("□■    ■  ■       ■       ■     ■  ■          ■   □\n");
+        printf("□■    ■  ■       ■       ■     ■  ■          ■   □\n");
+        printf("□■■■■■   ■■■■■■   ■■■■   ■     ■  ■          ■   □\n");
+        printf("□■   ■   ■            ■  ■     ■  ■          ■   □\n");
+        printf("□■    ■  ■            ■   ■   ■   ■          ■   □\n");
+        printf("□■    ■  ■■■■■■   ■■■■     ■■■    ■■■■■■     ■   □\n");
+        printf("□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□\n");
+	DRESS_INIT;
+
+                dress(F_GREEN, "");
+                printf("1p : %d  ", p1_alive_num);
+                dress(F_RED, "");
+		if( mode == 2 )
+                printf("2p : %d\n", p2_alive_num);
+		else
+		printf("AI : %d\n", p2_alive_num);
+                DRESS_INIT;
 		if(p1_alive_num > p2_alive_num)
-			printf("1p 승리\n");
+		{	
+                printf("The winner is...\n");
+		dress(F_GREEN, "");
+	        printf("■■■■■   ■         ■     ■     ■  ■■■■■■  ■■■■■     ■■   \n");
+	        printf("■    ■  ■        ■ ■     ■   ■   ■       ■    ■   ■ ■   \n");
+	        printf("■    ■  ■       ■   ■     ■ ■    ■       ■    ■  ■  ■   \n");
+	        printf("■■■■■   ■      ■■■■■■■     ■     ■■■■■■  ■■■■       ■   \n");
+	        printf("■       ■      ■     ■     ■     ■       ■   ■      ■   \n");
+	        printf("■       ■      ■     ■     ■     ■       ■    ■     ■   \n");
+	        printf("■       ■■■■■  ■     ■     ■     ■■■■■■  ■    ■  ■■■■■■■\n");
+      		DRESS_INIT;
+		}
 		else if(p1_alive_num < p2_alive_num)
-			printf("2p 승리\n");
-		else printf("무승부\n");
-	}
+		{
+                printf("The winner is...\n");        
+	        dress(F_RED, "");
+                if(mode ==2){
+			printf("■■■■■   ■         ■     ■     ■  ■■■■■■  ■■■■■    ■■■■■■\n");
+                	printf("■    ■  ■        ■ ■     ■   ■   ■       ■    ■        ■\n");
+                	printf("■    ■  ■       ■   ■     ■ ■    ■       ■    ■        ■\n");
+                	printf("■■■■■   ■      ■■■■■■■     ■     ■■■■■■  ■■■■     ■■■■■■\n");
+                	printf("■       ■      ■     ■     ■     ■       ■   ■    ■     \n");
+                	printf("■       ■      ■     ■     ■     ■       ■    ■   ■     \n");
+               		printf("■       ■■■■■  ■     ■     ■     ■■■■■■  ■    ■   ■■■■■■\n");
+        	        }
+		else {
+			printf("   ■     ■■■■■■■\n");
+                        printf("  ■ ■       ■   \n");
+                        printf(" ■   ■      ■   \n");
+                        printf("■■■■■■■     ■   \n");
+                        printf("■     ■     ■   \n");
+                        printf("■     ■     ■   \n");
+                        printf("■     ■  ■■■■■■■\n");
+
+		}
+		DRESS_INIT;
+		}
+		else
+		{
+		dress(F_YELLOW,"");
+		printf("■■■■■■   ■■■■■      ■     ■       ■\n");
+                printf("■     ■  ■    ■    ■ ■    ■       ■\n");
+                printf("■     ■  ■    ■   ■   ■   ■   ■   ■\n");
+                printf("■     ■  ■■■■■   ■■■■■■■  ■  ■ ■  ■\n");
+                printf("■     ■  ■   ■   ■     ■  ■ ■   ■ ■\n");
+                printf("■     ■  ■    ■  ■     ■  ■■     ■■\n");
+                printf("■■■■■■   ■    ■  ■     ■  ■       ■\n");
+		DRESS_INIT;
+		}
+
 	draw_option(K_RETRY, "Retry");
 	draw_option(K_TITLE, "Back to Title");
 }
+
 menu prom_title(void *_b){
 	switch(key){
 		case K_MODE_1P: init_board(_b); return mode = 1, READY;
 		case K_MODE_2P: init_board(_b); return mode = 2, READY;
+		case K_EXPLAIN: return EXPLAIN;
 		case K_QUIT: return END;
 		default: break;
 	}
 	return MENU_NONE;
 }
+
 menu prom_ready(void *_b){
 	BOARD(_b);
 
@@ -177,6 +283,7 @@ menu prom_go(void *_b){
 menu prom_result(void *_b){
 
 	switch(key){
+
 		case K_RETRY: init_board(_b); return READY;
 		case K_TITLE: return TITLE;
 		default: break;
@@ -301,13 +408,15 @@ void* board_manage(void *_args){
 		p2_alive_num = 0;
 
 		evolve(board, args->bma_r, args->bma_c);
-
+		
 		dress(F_GREEN, "");
 		printf("1p : %d  ", p1_alive_num);
 		dress(F_RED, "");
+		if(mode == 2)
 		printf("2p : %d\n", p2_alive_num);
+		else printf("AI : %d\n",p2_alive_num);
 		DRESS_INIT;
-
+			
 		// 한 쪽이 전멸하거나
 		if(mode == 2 && (p1_alive_num == 0 || p2_alive_num == 0))
 			break;
@@ -322,6 +431,7 @@ void* board_manage(void *_args){
 void draw(void *_b, int rows, int cols){
 	cell_type (*board)[cols] = _b;
 	int r, c;
+
 
 	dress(SET_POS, "1;1");
 	for(r=0; r<rows; r++){
@@ -414,7 +524,7 @@ cell_type get_evolved_cell(int n){
 		case CCO_BRU:	return CT_2_BRUISER;
 		case CCO_ASS:	return CT_2_ASSASSIN;
 		case CCO_COM:	return CT_2_COMMANDER;
-		default:		return CT_NONE;
+		default:	return CT_NONE;
 	}
 }
 
