@@ -81,11 +81,12 @@ void menu_ready(void *_b){
 	draw(_b, R, C);
 
 	dress(SET_POS, dress_pos(p1_row + 1, p1_col + 1));
-	dress(F_GREEN, ":");
+	dress(B_GREEN, ":");
 	DRESS_INIT;
 	if(mode == 2){
-	dress(SET_POS, dress_pos(p2_row + 1 , p2_col + 1));
-	dress(F_RED, ":");
+		dress(SET_POS, dress_pos(p2_row + 1 , p2_col + 1));
+		dress(B_RED, ":");
+		DRESS_INIT;
 		// 2P 커서 위치 출력
 	}
 	dress(SET_POS, dress_pos(R+1, 0));
@@ -228,7 +229,11 @@ menu prom_title(void *_b){
 
 menu prom_ready(void *_b){
 	BOARD(_b);
-
+	int P1_PLACE[3] = { CT_1_BRUISER, CT_1_ASSASSIN, CT_1_COMMANDER };
+	int P2_PLACE[3] = { CT_2_BRUISER, CT_2_ASSASSIN, CT_2_COMMANDER };
+	int d_actor = 0, i;
+	cell_type *c;
+	
 	switch(key){
 		case K_P1_apply: return GO;
 		case K_P1_up: p1_row = MAX(p1_row-1, 1); break;
@@ -247,7 +252,7 @@ menu prom_ready(void *_b){
 			p1_av[2]--; board[p1_row][p1_col] = CT_1_COMMANDER;
 			//p1_alive_num++;
 		} break;
-		case K_P1_delete: break; // 보드에 있는게 자기 것일 때 지워야 한다.
+		case K_P1_delete: c = &board[p1_row][p1_col]; d_actor = 1; break; // 보드에 있는게 자기 것일 때 지워야 한다.
 		case K_BACK: return TITLE;
 		default: break;
 	}
@@ -267,8 +272,20 @@ menu prom_ready(void *_b){
 			case K_P2_commander: if(p2_av[2] > 0 && !board[p2_row][p2_col]){
 				p2_av[2]--; board[p2_row][p2_col] = CT_2_COMMANDER;
 			} break;
-			case K_P2_delete: break;
+			case K_P2_delete: c = &board[p2_row][p2_col]; d_actor = 2; break;
 			default: break;
+		}
+	}
+	if(d_actor != 0){
+		for(i=0; i<3; i++){
+			if(*c == P1_PLACE[i] && d_actor == 1){
+				p1_av[i]++;
+				*c = CT_NONE;
+			}
+			if(*c == P2_PLACE[i] && d_actor == 2){
+				p2_av[i]++;
+				*c = CT_NONE;
+			}
 		}
 	}
 	return MENU_NONE;
@@ -390,6 +407,8 @@ void init_board(void *_b){
 				board[i][j] = CT_NONE;
 		}
 	}
+	p1_row = R/2; p1_col = C/4;
+	p2_row = R/2; p2_col = C/4*3;
 	p1_av[0] = p2_av[0] = P_bruiser_score;
 	p1_av[1] = p2_av[1] = P_assassin_score;
 	p1_av[2] = p2_av[2] = P_commander_score;
@@ -419,13 +438,12 @@ void* board_manage(void *_args){
 		dress(F_GREEN, "");
 		printf("1p : %d  ", p1_alive_num);
 		dress(F_RED, "");
-		if(mode == 2)
-		printf("2p : %d\n", p2_alive_num);
-		else printf("AI : %d\n",p2_alive_num);
+		if(mode == 2) printf("2p : %d\n", p2_alive_num);
+		else printf("AI : %d\n", p2_alive_num);
 		DRESS_INIT;
 			
 		// 한 쪽이 전멸하거나
-		if(mode == 2 && (p1_alive_num == 0 || p2_alive_num == 0))
+		if(p1_alive_num == 0 || p2_alive_num == 0)
 			break;
 
 		if(gen > MAX_GEN)	// 제한 시간이 지나는 경우 while문 탈출
