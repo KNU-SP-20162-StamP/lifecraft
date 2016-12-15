@@ -198,7 +198,7 @@ void menu_result(void *_b){
 		DRESS_INIT;
 		dress(B_GREEN, ""); for(j=board_graph[i][0]*50/total; j>0; j--) printf(" "); DRESS_INIT;
 		dress(B_RED, ""); for(j=board_graph[i][1]*50/total; j>0; j--) printf(" "); DRESS_INIT;
-		dress(F_GREEN, " %d", board_graph[i][0]); DRESS_INIT; printf(":");
+		dress(F_GREEN, " %d", board_graph[i][0]); DRESS_INIT; printf((board_graph[i][0] > board_graph[i][1]) ? ">" : (board_graph[i][0] == board_graph[i][1]) ? "=" : "<");
 		dress(F_RED, "%d\n", board_graph[i][1]); DRESS_INIT;
 	}
 	draw_option(K_RETRY, "Retry");
