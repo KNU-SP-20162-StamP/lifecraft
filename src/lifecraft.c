@@ -575,7 +575,7 @@ void evolve(void *_b, int rows, int cols){
 			// 생사 결정
 			if(board[r][c] == CT_NONE){
 				new[r][c] = get_evolved_cell(n);
-			}else if(hp <= as || sur_n >= DIE_POINT){
+			}else if(hp <= as || sur_n >= CHOKE_POINT || sur_n <= LONE_POINT){
 				new[r][c] = CT_NONE;
 			}else{
 				new[r][c] = board[r][c];

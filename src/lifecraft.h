@@ -18,9 +18,10 @@
 // 탄생 비용
 #define CCO_BRU 2
 #define CCO_ASS 3
-#define CCO_COM 4
+#define CCO_COM 5
 //죽을 조건
-#define DIE_POINT 2
+#define CHOKE_POINT 4
+#define LONE_POINT 1
 // 키
 #define K_QUIT 'q'
 #define K_MODE_1P '1'
