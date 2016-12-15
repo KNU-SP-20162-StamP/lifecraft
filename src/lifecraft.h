@@ -66,7 +66,7 @@
 typedef enum _d_code{
 	INIT,
 	// 특수
-	CLEAR, SET_POS, NEXT_LINE,
+	CLEAR, CLEAR_LINE, SET_POS, NEXT_LINE,
 	// 글자 속성
 	BOLD, UNDERLINE,
 	// 글자 색상

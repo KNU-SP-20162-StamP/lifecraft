@@ -17,6 +17,7 @@ struct termios _ttystate;
 int p1_av[3], p2_av[3];
 int p1_row = 1, p1_col = 1, p2_row = 1, p2_col = 1;
 int p1_alive_num = 0, p2_alive_num = 0;//몇개 살아있는지
+int ready_status = 0;
 int cell_null;
 int entries;
 int mode;
@@ -77,16 +78,23 @@ void menu_title(void *_b){
 	draw_option(K_QUIT, "Quit");
 }
 void menu_ready(void *_b){
+	int p1_ok = ready_status & 0b01;
+	int p2_ok = ready_status & 0b10;
+	
 	dress(CLEAR, "2");
 	draw(_b, R, C);
 
-	dress(SET_POS, dress_pos(p1_row + 1, p1_col + 1));
-	dress(B_GREEN, ":");
-	DRESS_INIT;
-	if(mode == 2){
-		dress(SET_POS, dress_pos(p2_row + 1 , p2_col + 1));
-		dress(B_RED, ":");
+	if(!p1_ok){
+		dress(SET_POS, dress_pos(p1_row + 1, p1_col + 1));
+		dress(B_GREEN, ":");
 		DRESS_INIT;
+	}
+	if(mode == 2){
+		if(!p2_ok){
+			dress(SET_POS, dress_pos(p2_row + 1 , p2_col + 1));
+			dress(B_RED, ":");
+			DRESS_INIT;
+		}
 		// 2P 커서 위치 출력
 	}
 	dress(SET_POS, dress_pos(R+1, 0));
@@ -95,8 +103,8 @@ void menu_ready(void *_b){
 		draw_option(K_P1_apply, "OK");
 		// 1P 선택
 	}else{
-		draw_option(K_P1_apply, "1P OK");
-		draw_option(K_P2_apply, "2P OK");	// 2P 선택
+		if(!p1_ok) draw_option(K_P1_apply, "1P OK");
+		if(!p2_ok) draw_option(K_P2_apply, "2P OK");	// 2P 선택
 	}
 	draw_option(K_BACK, "Back");
 }
@@ -231,61 +239,63 @@ menu prom_ready(void *_b){
 	BOARD(_b);
 	int P1_PLACE[3] = { CT_1_BRUISER, CT_1_ASSASSIN, CT_1_COMMANDER };
 	int P2_PLACE[3] = { CT_2_BRUISER, CT_2_ASSASSIN, CT_2_COMMANDER };
-	int d_actor = 0, i;
+	int d_actor = 0b000, d_w, p2, i;
+	/* d_actor 플래그: 0bIXP
+		I	그 위치에서 추가
+		X	그 위치에서 삭제
+		P	1이면 2P, 0이면 1P
+	*/
 	cell_type *c;
 	
 	switch(key){
-		case K_P1_apply: return GO;
+		case K_P1_apply: if(mode == 1) return GO; if((ready_status |= 0b01) == 0b11){
+			ready_status = 0; return GO;
+		} break;
 		case K_P1_up: p1_row = MAX(p1_row-1, 1); break;
 		case K_P1_down: p1_row = MIN(p1_row+1, R-2); break;
 		case K_P1_left: p1_col = MAX(p1_col-1, 1); break;
 		case K_P1_right: p1_col = MIN(p1_col+1, C-2); break;
-		case K_P1_bruiser: if(p1_av[0] > 0 && !board[p1_row][p1_col]){
-			p1_av[0]--; board[p1_row][p1_col] = CT_1_BRUISER;
-			//p1_alive_num++;
-		} break;
-		case K_P1_assassin: if(p1_av[1] > 0 && !board[p1_row][p1_col]){
-			p1_av[1]--; board[p1_row][p1_col] = CT_1_ASSASSIN;
-			//p1_alive_num++;
-		} break;
-		case K_P1_commander: if(p1_av[2] > 0 && !board[p1_row][p1_col]){
-			p1_av[2]--; board[p1_row][p1_col] = CT_1_COMMANDER;
-			//p1_alive_num++;
-		} break;
-		case K_P1_delete: c = &board[p1_row][p1_col]; d_actor = 1; break; // 보드에 있는게 자기 것일 때 지워야 한다.
+		case K_P1_bruiser: c = &board[p1_row][p1_col]; d_actor = 0b100; d_w = CT_1_BRUISER; break;
+		case K_P1_assassin: c = &board[p1_row][p1_col]; d_actor = 0b100; d_w = CT_1_ASSASSIN; break;
+		case K_P1_commander: c = &board[p1_row][p1_col]; d_actor = 0b100; d_w = CT_1_COMMANDER; break;
+		case K_P1_delete: c = &board[p1_row][p1_col]; d_actor = 0b010; break;
 		case K_BACK: return TITLE;
 		default: break;
 	}
-	if(mode == 2){
-		switch(key){
-			case K_P2_apply: return GO;
-			case K_P2_up: p2_row = MAX(p2_row-1, 1); break;
-			case K_P2_down: p2_row = MIN(p2_row+1, R-2); break;
-			case K_P2_left: p2_col = MAX(p2_col-1, 1); break;
-			case K_P2_right: p2_col = MIN(p2_col+1, C-2); break;
-			case K_P2_bruiser: if(p2_av[0] > 0 && !board[p2_row][p2_col]){
-				p2_av[0]--; board[p2_row][p2_col] = CT_2_BRUISER;
-			} break;
-			case K_P2_assassin: if(p2_av[1] > 0 && !board[p2_row][p2_col]){
-				p2_av[1]--; board[p2_row][p2_col] = CT_2_ASSASSIN;
-			} break;
-			case K_P2_commander: if(p2_av[2] > 0 && !board[p2_row][p2_col]){
-				p2_av[2]--; board[p2_row][p2_col] = CT_2_COMMANDER;
-			} break;
-			case K_P2_delete: c = &board[p2_row][p2_col]; d_actor = 2; break;
-			default: break;
-		}
+	if(mode == 2) switch(key){
+		case K_P2_apply: if((ready_status |= 0b10) == 0b11){
+			ready_status = 0; return GO;
+		} break;
+		case K_P2_up: p2_row = MAX(p2_row-1, 1); break;
+		case K_P2_down: p2_row = MIN(p2_row+1, R-2); break;
+		case K_P2_left: p2_col = MAX(p2_col-1, 1); break;
+		case K_P2_right: p2_col = MIN(p2_col+1, C-2); break;
+		case K_P2_bruiser: c = &board[p2_row][p2_col]; d_actor = 0b101; d_w = CT_2_BRUISER; break;
+		case K_P2_assassin: c = &board[p2_row][p2_col]; d_actor = 0b101; d_w = CT_2_ASSASSIN; break;
+		case K_P2_commander: c = &board[p2_row][p2_col]; d_actor = 0b101; d_w = CT_2_COMMANDER; break;
+		case K_P2_delete: c = &board[p2_row][p2_col]; d_actor = 0b011; break;
+		default: break;
 	}
-	if(d_actor != 0){
-		for(i=0; i<3; i++){
-			if(*c == P1_PLACE[i] && d_actor == 1){
-				p1_av[i]++;
-				*c = CT_NONE;
-			}
-			if(*c == P2_PLACE[i] && d_actor == 2){
-				p2_av[i]++;
-				*c = CT_NONE;
-			}
+	p2 = d_actor % 2;
+	if((!p2 && ready_status & 0b01) || (p2 && ready_status & 0b10)){
+		// 준비 완료한 상태
+	}else if(d_actor & 0b010) for(i=0; i<3; i++){
+		if(!p2 && *c == P1_PLACE[i]){
+			p1_av[i]++;
+			*c = CT_NONE;
+		}
+		if(p2 && *c == P2_PLACE[i]){
+			p2_av[i]++;
+			*c = CT_NONE;
+		}
+	}else if(d_actor & 0b100) for(i=0; i<3; i++){
+		if(!p2 && !*c && d_w == P1_PLACE[i] && p1_av[i] > 0){
+			p1_av[i]--;
+			*c = P1_PLACE[i];
+		}
+		if(p2 && !*c && d_w == P2_PLACE[i] && p2_av[i] > 0){
+			p2_av[i]--;
+			*c = P2_PLACE[i];
 		}
 	}
 	return MENU_NONE;
@@ -355,6 +365,7 @@ void dress(d_code code, char *msg, ...){
 		case INIT: strcat(buf, "0m"); break;
 
 		case CLEAR: strcat(buf, msg); strcat(buf, "J"); ign_msg = 1; break;
+		case CLEAR_LINE: strcat(buf, msg); strcat(buf, "K"); ign_msg = 1; break;
 		case SET_POS: strcat(buf, msg); strcat(buf, "H"); ign_msg = 1; break;
 		case NEXT_LINE: strcat(buf, msg); strcat(buf, "E"); ign_msg = 1; break;
 
@@ -435,6 +446,7 @@ void* board_manage(void *_args){
 
 		evolve(board, args->bma_r, args->bma_c);
 		
+		dress(CLEAR_LINE, "2");
 		dress(F_GREEN, "");
 		printf("1p : %d  ", p1_alive_num);
 		dress(F_RED, "");
