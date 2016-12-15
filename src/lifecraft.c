@@ -287,8 +287,8 @@ void menu_option(void *b){
 }
 menu prom_title(void *_b){
 	switch(key){
-		case K_MODE_1P: init_board(_b); return mode = 1, READY;
-		case K_MODE_2P: init_board(_b); return mode = 2, READY;
+		case K_MODE_1P: mode = 1; init_board(_b); return READY;
+		case K_MODE_2P: mode = 2; init_board(_b); return READY;
 		case K_HELP: return HELP;
 		case K_OPTION : return OPTION;
 		case K_QUIT: return END;
