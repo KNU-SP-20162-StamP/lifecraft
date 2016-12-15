@@ -24,12 +24,8 @@ int mode;
 int key;
 
 int main(){
-	void (*menu_items[])(void*) = { NULL, menu_title, menu_ready, menu_go, menu_result, menu_help};
-	menu (*prom_items[])(void*) = { NULL, prom_title, prom_ready, prom_go, prom_result, prom_help};
-
 	cell_type board[R][C] = { CT_NONE, };
 	pthread_t key_manager;
-	menu state = TITLE, next;
 	int r, c;
 
 	srand(time(NULL));
@@ -40,6 +36,18 @@ int main(){
 	signal(SIGINT, on_terminate);
 	signal(SIGQUIT, on_terminate);
 
+	ui();
+	pthread_mutex_unlock(&main_lock);
+	pthread_cancel(key_manager);
+	on_terminate(0);
+
+	return 0;
+}
+void ui(){
+	void (*menu_items[])(void*) = { NULL, menu_title, menu_ready, menu_go, menu_result, menu_help, NULL };
+	menu (*prom_items[])(void*) = { NULL, prom_title, prom_ready, prom_go, prom_result, prom_help, NULL };
+	menu state = TITLE, next;
+	
 	while(1){
 		DRESS_NEW;
 		if(state == END) break;
@@ -48,11 +56,6 @@ int main(){
 		pthread_cond_wait(&main_cond, &main_lock);
 		if((next = prom_items[state](board)) != MENU_NONE) state = next;
 	}
-	pthread_mutex_unlock(&main_lock);
-	pthread_cancel(key_manager);
-	on_terminate(0);
-
-	return 0;
 }
 void draw_option(char key, char *desc){
 	dress(F_GREEN, "[%c]", key);
@@ -358,7 +361,7 @@ menu prom_help(void *_b)
 	 return TITLE;
 }
 
-void* key_manage(void*arg){
+void* key_manage(void *arg){
 	while(1){
 		key = getchar() & 0xFF;
 		if(key == 27){

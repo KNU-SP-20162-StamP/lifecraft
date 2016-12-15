@@ -102,6 +102,7 @@ typedef struct _bm_args{
 	void *bma_b;
 } bm_args;
 
+void ui();
 void kio();
 void restore();
 void* key_manage(void*);
