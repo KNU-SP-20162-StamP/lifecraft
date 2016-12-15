@@ -228,7 +228,7 @@ void menu_help(void *_b)
 		dress(F_YELLOW, "");
 		printf("<<유닛 소멸 조건 설명>>\n");
 		DRESS_INIT;
-		printf("한 유닛 주위에 아군이 %d이상 있을경우 해당 유닛은 소멸합니다.\n 또한 주위 여덟칸의 적 유닛 공격력의 합이 유닛의 체력보다 크거나 같으면 해당 유닛은 전사합니다.\n",DIE_POINT);
+		printf("한 유닛 주위에 아군이 %d이하 이거나 %d이상 있을경우 해당 유닛은 소멸합니다.\n 또한 주위 여덟칸의 적 유닛 공격력의 합이 유닛의 체력보다 크거나 같으면 해당 유닛은 전사합니다.\n",(LONE_POINT - 1),(CHOKE_POINT - 1));
 
 		printf("\n▶여기서 주위란□□□\n");
 		printf("              □@□\n");
@@ -237,9 +237,11 @@ void menu_help(void *_b)
                 printf("            □■□\n");
                 printf("            □+□ @:%d점 + #:%d점 = %d점따라서 ■에 # 생성\n",CSC_ASS,CSC_BRU,CCO_ASS);
                 printf("▶예시(소멸) #□□\n");
+                printf("            □■@\n");
+                printf("            +□□ 주위에 유닛수가 %d 이상이므로 ■에 위치한 유닛은 소멸합니다.\n",(CHOKE_POINT - 1));
+                printf("▶예시(소멸) □□□\n");
                 printf("            □■□\n");
-                printf("            @□□ 주위에 유닛수가 %d 이상이므로 ■에 위치한 유닛은 소멸합니다.\n",DIE_POINT);
-
+                printf("            □□□ 주위에 유닛수가 %d 이하이므로 ■에 위치한 유닛은 소멸합니다.\n",(LONE_POINT - 1));
 		printf("▶예시(전사)");
 		dress(F_GREEN, "");
 		printf(" #");
