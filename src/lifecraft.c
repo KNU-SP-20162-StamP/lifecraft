@@ -17,12 +17,11 @@ pthread_cond_t main_cond = PTHREAD_COND_INITIALIZER;
 struct termios _ttystate;
 setting_t setting = { P_assassin_score, P_bruiser_score, P_commander_score, MAX_GEN, RUN_CYCLE };
 
+int board_graph[P_LEVEL+1][3];
 int p1_av[3], p2_av[3];
 int p1_row = 1, p1_col = 1, p2_row = 1, p2_col = 1;
 int p1_alive_num = 0, p2_alive_num = 0;//몇개 살아있는지
 int ready_status = 0;
-int cell_null;
-int entries;
 int mode;
 int key;
 
@@ -125,77 +124,83 @@ void menu_go(void *_b){
 	printf("\n종료!\n계속하려면 아무 키나 누르십시오.\n");
 }
 void menu_result(void *_b){
-        dress(F_CYAN, "" );
+	int i, j, total = (R-2)*(C-2);
+	
+    dress(F_CYAN, "" );
 	printf("□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□\n");
 	printf("□■■■■■   ■■■■■■   ■■■■   ■     ■  ■       ■■■■■■■□\n");
-        printf("□■    ■  ■       ■       ■     ■  ■          ■   □\n");
-        printf("□■    ■  ■       ■       ■     ■  ■          ■   □\n");
-        printf("□■■■■■   ■■■■■■   ■■■■   ■     ■  ■          ■   □\n");
-        printf("□■   ■   ■            ■  ■     ■  ■          ■   □\n");
-        printf("□■    ■  ■            ■   ■   ■   ■          ■   □\n");
-        printf("□■    ■  ■■■■■■   ■■■■     ■■■    ■■■■■■     ■   □\n");
-        printf("□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□\n");
+	printf("□■    ■  ■       ■       ■     ■  ■          ■   □\n");
+	printf("□■    ■  ■       ■       ■     ■  ■          ■   □\n");
+	printf("□■■■■■   ■■■■■■   ■■■■   ■     ■  ■          ■   □\n");
+	printf("□■   ■   ■            ■  ■     ■  ■          ■   □\n");
+	printf("□■    ■  ■            ■   ■   ■   ■          ■   □\n");
+	printf("□■    ■  ■■■■■■   ■■■■     ■■■    ■■■■■■     ■   □\n");
+	printf("□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□\n");
 	DRESS_INIT;
 
-                dress(F_GREEN, "");
-                printf("1p : %d  ", p1_alive_num);
-                dress(F_RED, "");
-		if( mode == 2 )
-                printf("2p : %d\n", p2_alive_num);
-		else
-		printf("AI : %d\n", p2_alive_num);
-                DRESS_INIT;
-		if(p1_alive_num > p2_alive_num)
-		{	
-                printf("The winner is...\n");
+	dress(F_GREEN, "");
+	printf("1p : %d  ", p1_alive_num);
+	dress(F_RED, "");
+	if( mode == 2 ) printf("2p : %d\n", p2_alive_num);
+	else printf("AI : %d\n", p2_alive_num);
+    DRESS_INIT;
+	if(p1_alive_num > p2_alive_num){	
+        printf("The winner is...\n");
 		dress(F_GREEN, "");
-	        printf("■■■■■   ■         ■     ■     ■  ■■■■■■  ■■■■■     ■■   \n");
-	        printf("■    ■  ■        ■ ■     ■   ■   ■       ■    ■   ■ ■   \n");
-	        printf("■    ■  ■       ■   ■     ■ ■    ■       ■    ■  ■  ■   \n");
-	        printf("■■■■■   ■      ■■■■■■■     ■     ■■■■■■  ■■■■       ■   \n");
-	        printf("■       ■      ■     ■     ■     ■       ■   ■      ■   \n");
-	        printf("■       ■      ■     ■     ■     ■       ■    ■     ■   \n");
-	        printf("■       ■■■■■  ■     ■     ■     ■■■■■■  ■    ■  ■■■■■■■\n");
-      		DRESS_INIT;
-		}
-		else if(p1_alive_num < p2_alive_num)
-		{
-                printf("The winner is...\n");        
-	        dress(F_RED, "");
-                if(mode ==2){
+		printf("■■■■■   ■         ■     ■     ■  ■■■■■■  ■■■■■     ■■   \n");
+		printf("■    ■  ■        ■ ■     ■   ■   ■       ■    ■   ■ ■   \n");
+		printf("■    ■  ■       ■   ■     ■ ■    ■       ■    ■  ■  ■   \n");
+		printf("■■■■■   ■      ■■■■■■■     ■     ■■■■■■  ■■■■       ■   \n");
+		printf("■       ■      ■     ■     ■     ■       ■   ■      ■   \n");
+		printf("■       ■      ■     ■     ■     ■       ■    ■     ■   \n");
+		printf("■       ■■■■■  ■     ■     ■     ■■■■■■  ■    ■  ■■■■■■■\n");
+		DRESS_INIT;
+	}else if(p1_alive_num < p2_alive_num){
+		printf("The winner is...\n");        
+		dress(F_RED, "");
+		if(mode ==2){
 			printf("■■■■■   ■         ■     ■     ■  ■■■■■■  ■■■■■    ■■■■■■\n");
-                	printf("■    ■  ■        ■ ■     ■   ■   ■       ■    ■        ■\n");
-                	printf("■    ■  ■       ■   ■     ■ ■    ■       ■    ■        ■\n");
-                	printf("■■■■■   ■      ■■■■■■■     ■     ■■■■■■  ■■■■     ■■■■■■\n");
-                	printf("■       ■      ■     ■     ■     ■       ■   ■    ■     \n");
-                	printf("■       ■      ■     ■     ■     ■       ■    ■   ■     \n");
-               		printf("■       ■■■■■  ■     ■     ■     ■■■■■■  ■    ■   ■■■■■■\n");
-        	        }
-		else {
+			printf("■    ■  ■        ■ ■     ■   ■   ■       ■    ■        ■\n");
+			printf("■    ■  ■       ■   ■     ■ ■    ■       ■    ■        ■\n");
+			printf("■■■■■   ■      ■■■■■■■     ■     ■■■■■■  ■■■■     ■■■■■■\n");
+			printf("■       ■      ■     ■     ■     ■       ■   ■    ■     \n");
+			printf("■       ■      ■     ■     ■     ■       ■    ■   ■     \n");
+			printf("■       ■■■■■  ■     ■     ■     ■■■■■■  ■    ■   ■■■■■■\n");
+		}else{
 			printf("   ■     ■■■■■■■\n");
-                        printf("  ■ ■       ■   \n");
-                        printf(" ■   ■      ■   \n");
-                        printf("■■■■■■■     ■   \n");
-                        printf("■     ■     ■   \n");
-                        printf("■     ■     ■   \n");
-                        printf("■     ■  ■■■■■■■\n");
-
+			printf("  ■ ■       ■   \n");
+			printf(" ■   ■      ■   \n");
+			printf("■■■■■■■     ■   \n");
+			printf("■     ■     ■   \n");
+			printf("■     ■     ■   \n");
+			printf("■     ■  ■■■■■■■\n");
 		}
 		DRESS_INIT;
-		}
-		else
-		{
+	}else{
 		dress(F_YELLOW,"");
 		printf("■■■■■■   ■■■■■      ■     ■       ■\n");
-                printf("■     ■  ■    ■    ■ ■    ■       ■\n");
-                printf("■     ■  ■    ■   ■   ■   ■   ■   ■\n");
-                printf("■     ■  ■■■■■   ■■■■■■■  ■  ■ ■  ■\n");
-                printf("■     ■  ■   ■   ■     ■  ■ ■   ■ ■\n");
-                printf("■     ■  ■    ■  ■     ■  ■■     ■■\n");
-                printf("■■■■■■   ■    ■  ■     ■  ■       ■\n");
+		printf("■     ■  ■    ■    ■ ■    ■       ■\n");
+		printf("■     ■  ■    ■   ■   ■   ■   ■   ■\n");
+		printf("■     ■  ■■■■■   ■■■■■■■  ■  ■ ■  ■\n");
+		printf("■     ■  ■   ■   ■     ■  ■ ■   ■ ■\n");
+		printf("■     ■  ■    ■  ■     ■  ■■     ■■\n");
+		printf("■■■■■■   ■    ■  ■     ■  ■       ■\n");
 		DRESS_INIT;
-		}
-
+	}
+	printf("Board Graph\n");
+	dress(F_BLACK, "    "); dress(UNDERLINE, "");
+	dress(B_WHITE, "0%%..|...20%%...|...40%%...|...60%%...|...80%%...|.100%%\n");
+	DRESS_INIT;
+	
+	for(i=0; i<=P_LEVEL; i++){
+		dress(F_BLACK, ""); dress(UNDERLINE, "");
+		dress(B_WHITE, "%3d%%", 100*i/P_LEVEL);
+		DRESS_INIT;
+		dress(B_GREEN, ""); for(j=board_graph[i][0]*50/total; j>0; j--) printf(" "); DRESS_INIT;
+		dress(B_RED, ""); for(j=board_graph[i][1]*50/total; j>0; j--) printf(" "); DRESS_INIT;
+		dress(F_GREEN, " %d", board_graph[i][0]); DRESS_INIT; printf(":");
+		dress(F_RED, "%d\n", board_graph[i][1]); DRESS_INIT;
+	}
 	draw_option(K_RETRY, "Retry");
 	draw_option(K_TITLE, "Back to Title");
 }
@@ -494,6 +499,7 @@ void init_board(void *_b){
 	cell_type (*board)[C] = _b;
 	int i, j;
 
+	for(i = 0; i < 11; i++) for(j = 0; j < 3; j++) board_graph[i][j] = 0;
 	for(i = 0; i < R; i++){
 		for(j = 0; j < C; j++){
 			if(!(i*j*(i-R+1)*(j-C+1)))
@@ -520,7 +526,10 @@ void run(void *_b, int rows, int cols){
 void* board_manage(void *_args){
 	bm_args *args = (bm_args*)_args;
 	cell_type (*board)[args->bma_c] = args->bma_b;
+	float P_TEN = setting.max_gen / (float)P_LEVEL;
+	int cp = 0;
 	int gen = 0;
+	int total = (R-2)*(C-2);
 
 	while(1){
 
@@ -534,12 +543,19 @@ void* board_manage(void *_args){
 		
 		dress(CLEAR_LINE, "2");
 		dress(F_GREEN, "");
-		printf("1p : %d  ", p1_alive_num);
+		printf("1p : %-5d", p1_alive_num);
 		dress(F_RED, "");
-		if(mode == 2) printf("2p : %d\n", p2_alive_num);
-		else printf("AI : %d\n", p2_alive_num);
+		if(mode == 2) printf("2p : %-5d", p2_alive_num);
+		else printf("AI : %-5d", p2_alive_num);
 		DRESS_INIT;
-			
+		printf("N : %-5d\n", total - p1_alive_num - p2_alive_num);
+		
+		if(gen > P_TEN * cp){
+			board_graph[cp][0] = p1_alive_num;
+			board_graph[cp][1] = p2_alive_num;
+			board_graph[cp][2] = total - p1_alive_num - p2_alive_num;
+			cp++;
+		}
 		// 한 쪽이 전멸하거나
 		if(p1_alive_num == 0 || p2_alive_num == 0)
 			break;
@@ -648,6 +664,14 @@ cell_type get_evolved_cell(int n){
 		case CCO_COM:	return CT_2_COMMANDER;
 		default:	return CT_NONE;
 	}
+}
+
+void* smalloc(int size){
+	void *res;
+	if((res = malloc(size)) == NULL)
+		oops("malloc error", 1);
+
+	return res;
 }
 
 void draw_cell_entries(void *_b, int rows, int cols){

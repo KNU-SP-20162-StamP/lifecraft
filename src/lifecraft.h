@@ -2,6 +2,7 @@
 #define C 77
 #define RUN_CYCLE 200000
 #define MAX_GEN 100
+#define P_LEVEL 20
 
 // 점수
 #define CSC_BRU 1
@@ -124,6 +125,7 @@ void draw_cell(cell_type);
 void evolve(void*, int, int);
 cell_type get_evolved_cell(int);
 
+void* smalloc(int size);
 void draw_cell_entries(void*, int, int);
 
 void run(void*, int, int);
