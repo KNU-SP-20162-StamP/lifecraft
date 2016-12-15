@@ -11,12 +11,11 @@
 #include <unistd.h>
 #include "lifecraft.h"
 
+pthread_t key_manager;
 pthread_mutex_t main_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t main_cond = PTHREAD_COND_INITIALIZER;
 struct termios _ttystate;
-setting_t setting = {
-P_assassin_score,P_bruiser_score,P_commander_score,MAX_GEN};
-
+setting_t setting = { P_assassin_score, P_bruiser_score, P_commander_score, MAX_GEN, RUN_CYCLE };
 
 int p1_av[3], p2_av[3];
 int p1_row = 1, p1_col = 1, p2_row = 1, p2_col = 1;
@@ -32,13 +31,11 @@ int main(){
 	menu (*prom_items[])(void*) = { NULL, prom_title, prom_ready, prom_go, prom_result, prom_help, prom_option, NULL};
 
 	cell_type board[R][C] = { CT_NONE, };
-	pthread_t key_manager;
 	menu state = TITLE, next;
 	int r, c;
 
 	srand(time(NULL));
 
-	pthread_create(&key_manager, NULL, key_manage, NULL);
 	pthread_mutex_lock(&main_lock);
 	kio();
 	signal(SIGINT, on_terminate);
@@ -53,7 +50,6 @@ int main(){
 		if((next = prom_items[state](board)) != MENU_NONE) state = next;
 	}
 	pthread_mutex_unlock(&main_lock);
-	pthread_cancel(key_manager);
 	on_terminate(0);
 
 	return 0;
@@ -103,19 +99,27 @@ void menu_ready(void *_b){
 		// 2P 커서 위치 출력
 	}
 	dress(SET_POS, dress_pos(R+1, 0));
-
-	if(mode == 1){
+	dress(F_GREEN, "<1P>"); DRESS_INIT;
+	printf(" + x%d/%d, # x%d/%d, @ x%d/%d\n",
+		setting.max_bru - p1_av[0], setting.max_bru,
+		setting.max_ass - p1_av[1], setting.max_ass,
+		setting.max_com - p1_av[2], setting.max_com
+	);
+	if(mode == 1){ // 1P
 		draw_option(K_P1_apply, "OK");
-		// 1P 선택
-	}else{
+	}else{ // 2P
+		dress(F_RED, "<2P>"); DRESS_INIT;
+		printf(" + x%d/%d, # x%d/%d, @ x%d/%d\n",
+			setting.max_bru - p2_av[0], setting.max_bru,
+			setting.max_ass - p2_av[1], setting.max_ass,
+			setting.max_com - p2_av[2], setting.max_com
+		);
 		if(!p1_ok) draw_option(K_P1_apply, "1P OK");
-		if(!p2_ok) draw_option(K_P2_apply, "2P OK");	// 2P 선택
+		if(!p2_ok) draw_option(K_P2_apply, "2P OK");
 	}
 	draw_option(K_BACK, "Back");
 }
 void menu_go(void *_b){
-	if(mode == 1)
-		draw_cell_entries(read_cell_entries(), _b, C);
 	run(_b, R, C);
 	// run이 끝남
 	printf("\n종료!\n계속하려면 아무 키나 누르십시오.\n");
@@ -269,11 +273,12 @@ void menu_help(void *_b)
 	printf("계속하려면 아무 키나 누르십시오.\n");
 }
 void menu_option(void *b){
-        draw_option(1, "최대 BURISER 유닛 수 변경");
-        draw_option(2, "최대 ASSASSIN 유닛 수 변경");
-        draw_option(3, "최대 COMMANDER 유닛 수 변경");
-        draw_option(4, "게임 턴 수 변경");
-        draw_option(5, "설정 종료");
+        draw_option('1', "최대 BURISER 수 설정");
+        draw_option('2', "최대 ASSASSIN 수 설정");
+        draw_option('3', "최대 COMMANDER 수 설정");
+        draw_option('4', "게임 턴 수 설정");
+        draw_option('5', "세대 주기 설정");
+        draw_option('b', "뒤로");
 }
 menu prom_title(void *_b){
 	switch(key){
@@ -367,38 +372,37 @@ menu prom_result(void *_b){
 }
 menu prom_help(void *_b)
 {
-	switch(key){
-		case '1':
-		printf("최대 BRUISER수를 설정해 주세요 ");
-		scanf("%d",&setting.max_bru);
-		break;
-		
-		case '2':
-                printf("최대 ASSASSIN수를 설정해 주세요 ");
-                scanf("%d",&setting.max_ass);
-		break;
-
-		case '3':
-                printf("최대 COMMANDER수를 설정해 주세요");
-                scanf("%d",&setting.max_com);
-		break;
-
-		case '4':
-                printf("종료 턴 수를 설정해 주세요 ");
-                scanf("%d",&setting.max_gen);
-		break;
-		
-		case '5':
-		return TITLE;
-		break;
-	}	
-	return MENU_NONE;
+	return TITLE;
 }
 menu prom_option(void *_b)
 {	
-	return TITLE;
+	switch(key){
+		case '1':
+			printf("최대 BRUISER수를 설정해 주세요(현재 %d): ", setting.max_bru);
+			restore(); scanf("%d", &setting.max_bru); kio();
+			break;
+		case '2':
+			printf("최대 ASSASSIN수를 설정해 주세요(현재 %d): ", setting.max_ass);
+			restore(); scanf("%d", &setting.max_ass); kio();
+			break;
+		case '3':
+			printf("최대 COMMANDER수를 설정해 주세요(현재 %d): ", setting.max_com);
+			restore(); scanf("%d", &setting.max_com); kio();
+			break;
+		case '4':
+			printf("종료 턴 수를 설정해 주세요(현재 %d): ", setting.max_gen);
+			restore(); scanf("%d", &setting.max_gen); kio();
+			break;
+		case '5':
+			printf("세대 주기를 설정해 주세요(현재 %d): ", setting.cycle);
+			restore(); scanf("%d", &setting.cycle); kio();
+			break;
+		case 'b': return TITLE;
+		default: break;
+	}
+	return MENU_NONE;
 }
-void* key_manage(void*arg){
+void* key_manage(void *arg){
 	while(1){
 		key = getchar() & 0xFF;
 		if(key == 27){
@@ -408,15 +412,14 @@ void* key_manage(void*arg){
 			}
 		}
 		pthread_cond_signal(&main_cond);
-		// printf("Key: %d %d %d\n", key >> 16, key >> 8 & 0xFF, key & 0xFF);
 	}
 	return NULL;
 }
 
 void kio(){
 	struct termios ttystate;
-	int ff;
 
+	pthread_create(&key_manager, NULL, key_manage, NULL);
 	tcgetattr(0, &_ttystate);
 	tcgetattr(0, &ttystate);
 	ttystate.c_lflag &= ~ICANON;
@@ -426,6 +429,7 @@ void kio(){
 }
 
 void restore(){
+	pthread_cancel(key_manager);
 	tcsetattr(0, TCSANOW, &_ttystate);
 }
 
@@ -500,9 +504,11 @@ void init_board(void *_b){
 	}
 	p1_row = R/2; p1_col = C/4;
 	p2_row = R/2; p2_col = C/4*3;
-	p1_av[0] = p2_av[0] = P_bruiser_score;
-	p1_av[1] = p2_av[1] = P_assassin_score;
-	p1_av[2] = p2_av[2] = P_commander_score;
+	p1_av[0] = p2_av[0] = setting.max_bru;
+	p1_av[1] = p2_av[1] = setting.max_ass;
+	p1_av[2] = p2_av[2] = setting.max_com;
+	
+	draw_cell_entries(_b, R, C);
 }
 void run(void *_b, int rows, int cols){
 	pthread_t board_manager;
@@ -519,7 +525,7 @@ void* board_manage(void *_args){
 	while(1){
 
 		draw(board, args->bma_r, args->bma_c);
-		printf("Gen #%d\n", gen++);
+		printf("Gen #%d/%d\n", gen++, setting.max_gen);
 
 		p1_alive_num = 0;
 		p2_alive_num = 0;
@@ -538,10 +544,10 @@ void* board_manage(void *_args){
 		if(p1_alive_num == 0 || p2_alive_num == 0)
 			break;
 
-		if(gen > MAX_GEN)	// 제한 시간이 지나는 경우 while문 탈출
+		if(gen > setting.max_gen)	// 제한 시간이 지나는 경우 while문 탈출
 			break;
 
-		usleep(RUN_CYCLE);
+		usleep(setting.cycle);
 	}
 	return _args;
 }
@@ -644,43 +650,15 @@ cell_type get_evolved_cell(int n){
 	}
 }
 
-void* smalloc(int size){
-	void *res;
-	if((res = malloc(size)) == NULL)
-		oops("malloc error", 1);
-
-	return res;
-}
-
-cell_entry** read_cell_entries(void){
-	cell_entry **res;
-	FILE *fp;
-	int i, j;
-	int entry_size;
-
-	fp = fopen(ENTRIES, "r");
-
-	fscanf(fp, "%d", &entries);
-
-	res = smalloc(sizeof(cell_entry*) * entries);
-
-	for(i = 0; i < entries; i++){
-		fscanf(fp, "%d", &entry_size);
-		res[i] = smalloc(sizeof(cell_entry) * entry_size);
-		for(j = 0; j < entry_size; j++){
-			fscanf(fp, "%d,%d,%d", &res[i][j].x, &res[i][j].y, &res[i][j].type);
-		}
-	}
-	return res;
-}
-
-void draw_cell_entries(cell_entry** entries_list, void *_b, int cols){
+void draw_cell_entries(void *_b, int rows, int cols){
 	cell_type (*board)[cols] = _b;
-	cell_entry* temp;
-	int i;
-
-	temp = entries_list[rand() % entries];
-	for(i = 0; temp[i].x != -1; i++){
-		board[temp[i].x][temp[i].y] = temp[i].type;
+	cell_type CELLS[3] = { CT_2_BRUISER, CT_2_ASSASSIN, CT_2_COMMANDER };
+	int i, j, r, c;
+	
+	for(i=0; i<3; i++){
+		for(j=p2_av[i]; j>0; j--){
+			r = 1 + rand() % (rows - 2), c = 1 + rand() % (cols - 2);
+			board[r][c] = CELLS[i];
+		}
 	}
 }

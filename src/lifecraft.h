@@ -104,10 +104,9 @@ typedef struct _bm_args{
 } bm_args;
 
 typedef struct _setting_t{
-int max_bru, max_ass, max_com, max_gen;
-}setting_t;
-
-
+	int max_bru, max_ass, max_com, max_gen;
+	int cycle;
+} setting_t;
 
 void kio();
 void restore();
@@ -125,9 +124,7 @@ void draw_cell(cell_type);
 void evolve(void*, int, int);
 cell_type get_evolved_cell(int);
 
-void* smalloc(int);
-cell_entry** read_cell_entries(void);
-void draw_cell_entries(cell_entry**, void*, int);
+void draw_cell_entries(void*, int, int);
 
 void run(void*, int, int);
 void* board_manage(void*);
