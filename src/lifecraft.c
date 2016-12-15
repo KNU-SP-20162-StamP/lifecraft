@@ -24,7 +24,6 @@ int mode;
 int key;
 
 int main(){
-	cell_type board[R][C] = { CT_NONE, };
 	pthread_t key_manager;
 	int r, c;
 
@@ -44,6 +43,7 @@ int main(){
 	return 0;
 }
 void ui(){
+	cell_type board[R][C] = { CT_NONE, };
 	void (*menu_items[])(void*) = { NULL, menu_title, menu_ready, menu_go, menu_result, menu_help, NULL };
 	menu (*prom_items[])(void*) = { NULL, prom_title, prom_ready, prom_go, prom_result, prom_help, NULL };
 	menu state = TITLE, next;
