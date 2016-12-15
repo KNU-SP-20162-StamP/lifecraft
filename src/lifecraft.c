@@ -514,7 +514,7 @@ void init_board(void *_b){
 	p1_av[1] = p2_av[1] = setting.max_ass;
 	p1_av[2] = p2_av[2] = setting.max_com;
 	
-	draw_cell_entries(_b, R, C);
+	if(mode == 1) draw_cell_entries(_b, R, C);
 }
 void run(void *_b, int rows, int cols){
 	pthread_t board_manager;
