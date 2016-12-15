@@ -14,6 +14,10 @@
 pthread_mutex_t main_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t main_cond = PTHREAD_COND_INITIALIZER;
 struct termios _ttystate;
+setting_t setting = {
+P_assassin_score,P_bruiser_score,P_commander_score,MAX_GEN};
+
+
 int p1_av[3], p2_av[3];
 int p1_row = 1, p1_col = 1, p2_row = 1, p2_col = 1;
 int p1_alive_num = 0, p2_alive_num = 0;//몇개 살아있는지
@@ -24,8 +28,8 @@ int mode;
 int key;
 
 int main(){
-	void (*menu_items[])(void*) = { NULL, menu_title, menu_ready, menu_go, menu_result, menu_help};
-	menu (*prom_items[])(void*) = { NULL, prom_title, prom_ready, prom_go, prom_result, prom_help};
+	void (*menu_items[])(void*) = { NULL, menu_title, menu_ready, menu_go, menu_result, menu_help, menu_option, NULL};
+	menu (*prom_items[])(void*) = { NULL, prom_title, prom_ready, prom_go, prom_result, prom_help, prom_option, NULL};
 
 	cell_type board[R][C] = { CT_NONE, };
 	pthread_t key_manager;
@@ -75,6 +79,7 @@ void menu_title(void *_b){
 	draw_option(K_MODE_1P, "One Player");
 	draw_option(K_MODE_2P, "Two Players");
 	draw_option(K_HELP, "Help");
+	draw_option(K_OPTION,"OPTION");
 	draw_option(K_QUIT, "Quit");
 }
 void menu_ready(void *_b){
@@ -263,12 +268,19 @@ void menu_help(void *_b)
 		DRESS_INIT;
 	printf("계속하려면 아무 키나 누르십시오.\n");
 }
-
+void menu_option(void *b){
+        draw_option(1, "최대 BURISER 유닛 수 변경");
+        draw_option(2, "최대 ASSASSIN 유닛 수 변경");
+        draw_option(3, "최대 COMMANDER 유닛 수 변경");
+        draw_option(4, "게임 턴 수 변경");
+        draw_option(5, "설정 종료");
+}
 menu prom_title(void *_b){
 	switch(key){
 		case K_MODE_1P: init_board(_b); return mode = 1, READY;
 		case K_MODE_2P: init_board(_b); return mode = 2, READY;
 		case K_HELP: return HELP;
+		case K_OPTION : return OPTION;
 		case K_QUIT: return END;
 		default: break;
 	}
@@ -355,9 +367,37 @@ menu prom_result(void *_b){
 }
 menu prom_help(void *_b)
 {
-	 return TITLE;
-}
+	switch(key){
+		case '1':
+		printf("최대 BRUISER수를 설정해 주세요 ");
+		scanf("%d",&setting.max_bru);
+		break;
+		
+		case '2':
+                printf("최대 ASSASSIN수를 설정해 주세요 ");
+                scanf("%d",&setting.max_ass);
+		break;
 
+		case '3':
+                printf("최대 COMMANDER수를 설정해 주세요");
+                scanf("%d",&setting.max_com);
+		break;
+
+		case '4':
+                printf("종료 턴 수를 설정해 주세요 ");
+                scanf("%d",&setting.max_gen);
+		break;
+		
+		case '5':
+		return TITLE;
+		break;
+	}	
+	return MENU_NONE;
+}
+menu prom_option(void *_b)
+{	
+	return TITLE;
+}
 void* key_manage(void*arg){
 	while(1){
 		key = getchar() & 0xFF;

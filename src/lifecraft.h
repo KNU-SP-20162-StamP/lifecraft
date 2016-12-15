@@ -26,7 +26,8 @@
 #define K_QUIT 'q'
 #define K_MODE_1P '1'
 #define K_MODE_2P '2'
-#define K_HELP '3' //게임 설명
+#define K_HELP 'h' //게임 설명
+#define K_OPTION 'o'
 #define K_RETRY 'r'
 #define K_TITLE 't'
 #define K_BACK 'b'
@@ -78,7 +79,7 @@ typedef enum _d_code{
 
 typedef enum _menu{
 	MENU_NONE,
-	TITLE, READY, GO, RESULT, HELP, END
+	TITLE, READY, GO, RESULT, HELP, OPTION, END
 } menu;
 
 typedef enum _cell_type{
@@ -101,6 +102,12 @@ typedef struct _bm_args{
 	int bma_r, bma_c;
 	void *bma_b;
 } bm_args;
+
+typedef struct _setting_t{
+int max_bru, max_ass, max_com, max_gen;
+}setting_t;
+
+
 
 void kio();
 void restore();
@@ -130,9 +137,11 @@ void menu_ready(void*);
 void menu_go(void*);
 void menu_result(void*);
 void menu_help(void*);
+void menu_option(void*);
 
 menu prom_title(void*);
 menu prom_ready(void*);
 menu prom_go(void*);
 menu prom_result(void*);
 menu prom_help(void*);
+menu prom_option(void*);
