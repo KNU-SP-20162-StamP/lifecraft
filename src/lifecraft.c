@@ -71,6 +71,7 @@ void menu_title(void *_b){
 	printf("□■■■■■  ■■■■■  ■       ■■■■■■    ■■■■  ■    ■  ■     ■  ■          ■   □\n");
 	printf("□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□\n");
 	DRESS_INIT;
+	printf("Made by 경북대학교 시스템프로그래밍 20162 팀프로젝트 A분반 2조 StamP\n");
 	draw_option(K_MODE_1P, "One Player");
 	draw_option(K_MODE_2P, "Two Players");
 	draw_option(K_HELP, "Help");
