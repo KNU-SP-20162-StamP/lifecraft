@@ -11,7 +11,6 @@
 #include <unistd.h>
 #include "lifecraft.h"
 
-#define max_gen 100
 pthread_mutex_t main_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t main_cond = PTHREAD_COND_INITIALIZER;
 struct termios _ttystate;
@@ -24,8 +23,8 @@ int mode;
 int key;
 
 int main(){
-	void (*menu_items[])(void*) = { NULL, menu_title, menu_ready, menu_go, menu_result ,menu_explain};
-	menu (*prom_items[])(void*) = { NULL, prom_title, prom_ready, prom_go, prom_result ,prom_explain};
+	void (*menu_items[])(void*) = { NULL, menu_title, menu_ready, menu_go, menu_result, menu_help};
+	menu (*prom_items[])(void*) = { NULL, prom_title, prom_ready, prom_go, prom_result, prom_help};
 
 	cell_type board[R][C] = { CT_NONE, };
 	pthread_t key_manager;
@@ -54,43 +53,10 @@ int main(){
 
 	return 0;
 }
-menu prom_explain(void *_b)
-{
-	 return EXPLAIN;
-}
-
 void draw_option(char key, char *desc){
 	dress(F_GREEN, "[%c]", key);
 	DRESS_INIT;
 	printf(" %s ", desc);
-}
-void menu_explain(void*b)
-{
-	printf("조작키 설명\n");
-	printf("1P\n");
-	dress(F_GREEN,"");
-        printf("□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□\n");
-        printf("□          r:어새신  t:탱커  y:커맨더 u:선택완료 □\n");
-        printf("□     w:상                                       □\n");
-        printf("□a:좌 s:하 d:우                                  □\n");
-    	printf("□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□\n");
-	DRESS_INIT;
-        printf("2P\n");
-        dress(F_RED,"");
-        printf("□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□\n");
-        printf("□m:어새신  ,:탱커  .:커맨더 /:선택완료           □\n");
-        printf("□     					↑:상     □\n");
-        printf("□		 	           ←:좌 ↓:하 →:우□\n");
-	printf("□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□\n");
-        DRESS_INIT;
-	printf("유닛 설명\n");
-	printf("# : ASSASIN   높은 공격력을 지닌 유닛\n");
-	printf("+ : BRUISER   높은 방어력을 지닌 유닛\n");
-	printf("@ : COMMANDER 적절한 공격력과 방어력을 지닌 유닛\n");
-	printf("게임설명\n");
-	printf("각 유닛을 3마리씩 배치하세요.그러면 전투는 자동으로 시작될 것입니다.\n");
-	printf("근처에 아군이 있으면 유닛이 추가로 생성되고 적들과 만나면 죽거나 생존합니다.\n");
-	printf("전략적인 배치를 통해 승리를 쟁취하십시오\n");
 }
 void menu_title(void *_b){
 	int color_change=1;
@@ -107,7 +73,7 @@ void menu_title(void *_b){
 	DRESS_INIT;
 	draw_option(K_MODE_1P, "One Player");
 	draw_option(K_MODE_2P, "Two Players");
-	draw_option(K_EXPLAIN, "게임 설명");
+	draw_option(K_HELP, "Help");
 	draw_option(K_QUIT, "Quit");
 }
 void menu_ready(void *_b){
@@ -128,8 +94,10 @@ void menu_ready(void *_b){
 		draw_option(K_P1_apply, "OK");
 		// 1P 선택
 	}else{
-		draw_option(K_P1_apply, "OK");	// 2P 선택
+		draw_option(K_P1_apply, "1P OK");
+		draw_option(K_P2_apply, "2P OK");	// 2P 선택
 	}
+	draw_option(K_BACK, "Back");
 }
 void menu_go(void *_b){
 	if(mode == 1)
@@ -213,12 +181,45 @@ void menu_result(void *_b){
 	draw_option(K_RETRY, "Retry");
 	draw_option(K_TITLE, "Back to Title");
 }
+void menu_help(void *_b)
+{
+	printf("조작키 설명\n");
+	printf("1P\n");
+	dress(F_GREEN,"");
+        printf("□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□\n");
+		printf("□      %12s%12s%12s%6s□\n", "r:BRUISER", "t:ASSASSIN", "y:COMMANDER", "u:OK");
+        printf("□     w:상                                       □\n");
+        printf("□a:좌 s:하 d:우                                  □\n");
+    	printf("□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□\n");
+	DRESS_INIT;
+	printf("2P\n");
+	dress(F_RED,"");
+        printf("□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□\n");
+		printf("□%-12s%-12s%-12s%-6s      □\n", "m:BRUISER", ",:ASSASSIN", ".:COMMANDER", "/:OK");
+        printf("□     					↑:상     □\n");
+        printf("□		 	           ←:좌 ↓:하 →:우□\n");
+		printf("□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□□\n");
+	DRESS_INIT;
+	dress(B_BLUE, "");
+	printf("유닛 설명\n");
+	DRESS_INIT;
+		printf("+ : BRUISER   높은 방어력을 지닌 유닛\n");
+		printf("# : ASSASSIN  높은 공격력을 지닌 유닛\n");
+		printf("@ : COMMANDER 적절한 공격력과 방어력을 지닌 유닛\n");
+	dress(B_MAGENTA, "");
+	printf("게임 설명\n");
+	DRESS_INIT;
+		printf("각 유닛을 3마리씩 배치하세요.그러면 전투는 자동으로 시작될 것입니다.\n");
+		printf("근처에 아군이 있으면 유닛이 추가로 생성되고 적들과 만나면 죽거나 생존합니다.\n");
+		printf("전략적인 배치를 통해 승리를 쟁취하십시오\n\n");
+	printf("계속하려면 아무 키나 누르십시오.\n");
+}
 
 menu prom_title(void *_b){
 	switch(key){
 		case K_MODE_1P: init_board(_b); return mode = 1, READY;
 		case K_MODE_2P: init_board(_b); return mode = 2, READY;
-		case K_EXPLAIN: return EXPLAIN;
+		case K_HELP: return HELP;
 		case K_QUIT: return END;
 		default: break;
 	}
@@ -247,6 +248,7 @@ menu prom_ready(void *_b){
 			//p1_alive_num++;
 		} break;
 		case K_P1_delete: break; // 보드에 있는게 자기 것일 때 지워야 한다.
+		case K_BACK: return TITLE;
 		default: break;
 	}
 	if(mode == 2){
@@ -271,12 +273,6 @@ menu prom_ready(void *_b){
 	}
 	return MENU_NONE;
 }
-char* dress_pos(int r, int c){
-	static char res[BUFSIZ];
-
-	sprintf(res, "%d;%d", r, c);
-	return res;
-}
 menu prom_go(void *_b){
 	return RESULT;
 }
@@ -290,6 +286,11 @@ menu prom_result(void *_b){
 	}
 	return MENU_NONE;
 }
+menu prom_help(void *_b)
+{
+	 return TITLE;
+}
+
 void* key_manage(void*arg){
 	while(1){
 		key = getchar() & 0xFF;
@@ -370,6 +371,12 @@ void dress(d_code code, char *msg, ...){
 	}
 	fputs(buf, stdout);
 }
+char* dress_pos(int r, int c){
+	static char res[BUFSIZ];
+
+	sprintf(res, "%d;%d", r, c);
+	return res;
+}
 
 void init_board(void *_b){
 	cell_type (*board)[C] = _b;
@@ -421,7 +428,7 @@ void* board_manage(void *_args){
 		if(mode == 2 && (p1_alive_num == 0 || p2_alive_num == 0))
 			break;
 
-		if(gen > max_gen)	// 제한 시간이 지나는 경우 while문 탈출
+		if(gen > MAX_GEN)	// 제한 시간이 지나는 경우 while문 탈출
 			break;
 
 		usleep(RUN_CYCLE);
@@ -470,11 +477,6 @@ void evolve(void *_b, int rows, int cols){
 
 	for(r=0; r<rows; r++){
 		for(c=0; c<cols; c++){
-			if(cell_ow[board[r][c]] == -1)	//현재 보드에 남아있는 유닛 수 계산
-				p1_alive_num++;
-			else if(cell_ow[board[r][c]] == 1)
-				p2_alive_num++;
-
 			if(board[r][c] == CT_WALL){
 				new[r][c] = CT_WALL;
 				continue;
@@ -487,13 +489,17 @@ void evolve(void *_b, int rows, int cols){
 			sur_n = 0;
 			hp = cell_hp[board[r][c]];
 
+			if(t == -1)	//현재 보드에 남아있는 유닛 수 계산
+				p1_alive_num++;
+			else if(t == 1)
+				p2_alive_num++;
+			
 			// 주변 유닛 수 계산 (음수는 플레이어1, 양수는 플레이어2)
 			for(y=r-1; y<=r+1; y++){
 				for(x=c-1; x<=c+1; x++){
 					sur = (int)board[(y+rows)%rows][(x+cols)%cols];
 					n += cell_sc[sur];
-					if(cell_ow[board[r][c]] == cell_ow[sur])
-						sur_n++;
+					if(t == cell_ow[sur]) sur_n++;
 					if(t + cell_ow[sur] == 0) as += cell_at[sur];
 				}
 			}

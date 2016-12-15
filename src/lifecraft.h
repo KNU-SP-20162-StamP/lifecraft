@@ -1,6 +1,7 @@
 #define R 33
 #define C 77
 #define RUN_CYCLE 200000
+#define MAX_GEN 100
 
 // 점수
 #define CSC_BRU 1
@@ -24,16 +25,17 @@
 #define K_QUIT 'q'
 #define K_MODE_1P '1'
 #define K_MODE_2P '2'
-#define K_EXPLAIN '3' //게임 설명
+#define K_HELP '3' //게임 설명
 #define K_RETRY 'r'
 #define K_TITLE 't'
+#define K_BACK 'b'
 
 #define K_P1_up 'w'	//w
 #define K_P1_down 's'	//s
 #define K_P1_left 'a'	//a
 #define K_P1_right 'd'	//d
-#define K_P1_assassin 'r'	//r
-#define K_P1_bruiser 't'	//t
+#define K_P1_bruiser 'r'	//r
+#define K_P1_assassin 't'	//t
 #define K_P1_commander 'y'	//y
 #define K_P1_apply 'u'
 #define K_P1_delete 'x'
@@ -42,8 +44,8 @@
 #define K_P2_down 0x425B1B	//방향키 down
 #define K_P2_right 0x435B1B	//방향키 right
 #define K_P2_left 0x445B1B	//방향키 left
-#define K_P2_assassin 'm'	//m
-#define K_P2_bruiser ','	//,
+#define K_P2_bruiser 'm'	//m
+#define K_P2_assassin ','	//,
 #define K_P2_commander '.'	//.
 #define K_P2_apply '/'
 #define K_P2_delete ';'
@@ -75,7 +77,7 @@ typedef enum _d_code{
 
 typedef enum _menu{
 	MENU_NONE,
-	TITLE, READY, GO, RESULT, END, EXPLAIN
+	TITLE, READY, GO, RESULT, HELP, END
 } menu;
 
 typedef enum _cell_type{
@@ -126,10 +128,10 @@ void menu_title(void*);
 void menu_ready(void*);
 void menu_go(void*);
 void menu_result(void*);
-void menu_explain(void*);
+void menu_help(void*);
 
 menu prom_title(void*);
 menu prom_ready(void*);
 menu prom_go(void*);
 menu prom_result(void*);
-menu prom_explain(void*);
+menu prom_help(void*);
